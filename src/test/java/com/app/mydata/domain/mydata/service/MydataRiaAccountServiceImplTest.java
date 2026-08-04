@@ -3,6 +3,7 @@ package com.app.mydata.domain.mydata.service;
 import com.app.mydata.domain.mydata.dto.MydataRiaAccountDTO;
 import com.app.mydata.domain.mydata.dto.response.MydataRiaAccountResponseDTO;
 import com.app.mydata.domain.mydata.exception.MydataRiaAccountException;
+import com.app.mydata.domain.mydata.exception.MydataRiaAccountNotFoundException;
 import com.app.mydata.domain.mydata.mapper.MydataKeyMapper;
 import com.app.mydata.domain.mydata.mapper.MydataRiaAccountMapper;
 import org.junit.jupiter.api.Test;
@@ -73,5 +74,16 @@ class MydataRiaAccountServiceImplTest {
                 .isInstanceOf(MydataRiaAccountException.class);
 
         verifyNoInteractions(mydataRiaAccountMapper);
+    }
+
+    @Test
+    void getAccountsByCiHash_조회결과가_없으면_NotFound예외를_던진다() {
+        String ciHash = "test-ci-hash";
+
+        when(mydataKeyMapper.existsByCiHash(ciHash)).thenReturn(1);
+        when(mydataRiaAccountMapper.selectByCiHash(ciHash)).thenReturn(List.of());
+
+        assertThatThrownBy(() -> mydataRiaAccountService.getAccountsByCiHash(ciHash))
+                .isInstanceOf(MydataRiaAccountNotFoundException.class);
     }
 }

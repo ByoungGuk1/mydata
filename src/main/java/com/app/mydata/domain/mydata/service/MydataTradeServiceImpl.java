@@ -3,6 +3,7 @@ package com.app.mydata.domain.mydata.service;
 import com.app.mydata.domain.mydata.dto.MydataTradeDTO;
 import com.app.mydata.domain.mydata.dto.response.MydataTradeResponseDTO;
 import com.app.mydata.domain.mydata.exception.MydataTradeException;
+import com.app.mydata.domain.mydata.exception.MydataTradeNotFoundException;
 import com.app.mydata.domain.mydata.mapper.MydataKeyMapper;
 import com.app.mydata.domain.mydata.mapper.MydataTradeMapper;
 import lombok.RequiredArgsConstructor;
@@ -14,7 +15,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
+@Transactional(rollbackFor = Exception.class)
 public class MydataTradeServiceImpl implements MydataTradeService {
 
     private final MydataTradeMapper mydataTradeMapper;
@@ -37,6 +38,10 @@ public class MydataTradeServiceImpl implements MydataTradeService {
         List<MydataTradeDTO> trades = mydataTradeMapper.selectByCiHashAndPeriod(
                 ciHash, fromDate, toDate
         );
+
+        if (trades.isEmpty()) {
+            throw new MydataTradeNotFoundException("해당 ciHash에 대한 거래 정보가 없습니다.");
+        }
 
         return trades.stream()
                 .map(MydataTradeResponseDTO::new)
