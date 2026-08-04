@@ -3,6 +3,7 @@ package com.app.mydata.domain.mydata.service;
 import com.app.mydata.domain.mydata.dto.MydataTradeDTO;
 import com.app.mydata.domain.mydata.dto.response.MydataTradeResponseDTO;
 import com.app.mydata.domain.mydata.exception.MydataTradeException;
+import com.app.mydata.domain.mydata.exception.MydataTradeNotFoundException;
 import com.app.mydata.domain.mydata.mapper.MydataKeyMapper;
 import com.app.mydata.domain.mydata.mapper.MydataTradeMapper;
 import org.junit.jupiter.api.Test;
@@ -77,5 +78,16 @@ class MydataTradeServiceImplTest {
                 .isInstanceOf(MydataTradeException.class);
 
         verifyNoInteractions(mydataTradeMapper);
+    }
+
+    @Test
+    void getTradesByCiHash_조회결과가_없으면_NotFound예외를_던진다() {
+        String ciHash = "test-ci-hash";
+
+        when(mydataKeyMapper.existsByCiHash(ciHash)).thenReturn(1);
+        when(mydataTradeMapper.selectByCiHashAndPeriod(ciHash, null, null)).thenReturn(List.of());
+
+        assertThatThrownBy(() -> mydataTradeService.getTradesByCiHash(ciHash, null, null))
+                .isInstanceOf(MydataTradeNotFoundException.class);
     }
 }
