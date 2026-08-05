@@ -2,6 +2,7 @@ package com.app.mydata.domain.mydata.service;
 
 
 import com.app.mydata.domain.mydata.dto.MydataRiaAccountDTO;
+import com.app.mydata.domain.mydata.dto.request.MydataRiaAccountRequestDTO;
 import com.app.mydata.domain.mydata.dto.response.MydataRiaAccountResponseDTO;
 import com.app.mydata.domain.mydata.exception.MydataRiaAccountException;
 import com.app.mydata.domain.mydata.exception.MydataRiaAccountNotFoundException;
@@ -23,19 +24,15 @@ public class MydataRiaAccountServiceImpl implements MydataRiaAccountService {
 
     @Override
     public List<MydataRiaAccountResponseDTO> getAccountsByCiHash(
-            String ciHash) {
+            MydataRiaAccountRequestDTO request) {
 
-        if (ciHash == null || ciHash.isBlank()) {
-            throw new MydataRiaAccountException("ciHash는 필수입니다.");
-        }
+        String ciHash = request.getCiHash();
 
         if (mydataKeyMapper.existsByCiHash(ciHash) == 0) {
             throw new MydataRiaAccountException("등록되지 않은 CiHash입니다.");
         }
 
-        List<MydataRiaAccountDTO> accounts = mydataRiaAccountMapper.selectByCiHash(
-                ciHash
-        );
+        List<MydataRiaAccountDTO> accounts = mydataRiaAccountMapper.selectByCiHash(ciHash);
 
         if (accounts.isEmpty()) {
             throw new MydataRiaAccountNotFoundException("해당 ciHash에 대한 RIA 계좌 정보가 없습니다.");

@@ -8,7 +8,7 @@
         SELECT COUNT(*) FROM mydata_key WHERE ci_hash = #{ciHash}
     </select>
 
-    <insert id="insertKey" parameterType="MydataKeyDTO">
+    <insert id="insertKey" parameterType="String">
         INSERT INTO mydata_key (ci_hash)
         VALUES (#{ciHash})
     </insert>

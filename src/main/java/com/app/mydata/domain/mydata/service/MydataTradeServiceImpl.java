@@ -1,6 +1,7 @@
 package com.app.mydata.domain.mydata.service;
 
 import com.app.mydata.domain.mydata.dto.MydataTradeDTO;
+import com.app.mydata.domain.mydata.dto.request.MydataTradeRequestDTO;
 import com.app.mydata.domain.mydata.dto.response.MydataTradeResponseDTO;
 import com.app.mydata.domain.mydata.exception.MydataTradeException;
 import com.app.mydata.domain.mydata.exception.MydataTradeNotFoundException;
@@ -23,21 +24,15 @@ public class MydataTradeServiceImpl implements MydataTradeService {
 
     @Override
     public List<MydataTradeResponseDTO> getTradesByCiHash(
-            String ciHash,
-            LocalDate fromDate,
-            LocalDate toDate) {
+            MydataTradeRequestDTO request) {
 
-        if (ciHash == null || ciHash.isBlank()) {
-            throw new MydataTradeException("ciHash는 필수입니다.");
-        }
+        String ciHash = request.getCiHash();
 
         if (mydataKeyMapper.existsByCiHash(ciHash) == 0) {
             throw new MydataTradeException("등록되지 않은 CiHash입니다.");
         }
 
-        List<MydataTradeDTO> trades = mydataTradeMapper.selectByCiHashAndPeriod(
-                ciHash, fromDate, toDate
-        );
+        List<MydataTradeDTO> trades = mydataTradeMapper.selectByCiHashAndPeriod(request);
 
         if (trades.isEmpty()) {
             throw new MydataTradeNotFoundException("해당 ciHash에 대한 거래 정보가 없습니다.");

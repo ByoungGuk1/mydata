@@ -1,6 +1,7 @@
 package com.app.mydata.domain.mydata.service;
 
 import com.app.mydata.domain.mydata.dto.MydataRiaAccountDTO;
+import com.app.mydata.domain.mydata.dto.request.MydataRiaAccountRequestDTO;
 import com.app.mydata.domain.mydata.dto.response.MydataRiaAccountResponseDTO;
 import com.app.mydata.domain.mydata.exception.MydataRiaAccountException;
 import com.app.mydata.domain.mydata.exception.MydataRiaAccountNotFoundException;
@@ -11,26 +12,33 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.math.BigDecimal;
 import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class MydataRiaAccountServiceImplTest {
 
     @Mock
-    MydataRiaAccountMapper mydataRiaAccountMapper;
+    private MydataRiaAccountMapper mydataRiaAccountMapper;
 
     @Mock
-    MydataKeyMapper mydataKeyMapper;
+    private MydataKeyMapper mydataKeyMapper;
 
     @InjectMocks
-    MydataRiaAccountServiceImpl mydataRiaAccountService;
+    private MydataRiaAccountServiceImpl mydataRiaAccountService;
 
     @Test
-    void getAccountsByCiHash_정상요청이면_결과를_반환한다() {
+    void getAccountsByCiHashReturnsAccountsWhenCiHashIsRegistered() {
         String ciHash = "test-ci-hash";
+        MydataRiaAccountRequestDTO request = MydataRiaAccountRequestDTO.builder()
+                .ciHash(ciHash)
+                .build();
 
         when(mydataKeyMapper.existsByCiHash(ciHash)).thenReturn(1);
 
@@ -38,52 +46,46 @@ class MydataRiaAccountServiceImplTest {
                 .mydataAccountId(1L)
                 .ciHash(ciHash)
                 .brokerName("증권사A")
+                .riaLimit(BigDecimal.valueOf(30_000_000))
+                .riaCumulativeSell(BigDecimal.ZERO)
                 .build();
-
         when(mydataRiaAccountMapper.selectByCiHash(ciHash)).thenReturn(List.of(dto));
 
-        List<MydataRiaAccountResponseDTO> result = mydataRiaAccountService.getAccountsByCiHash(ciHash);
+        List<MydataRiaAccountResponseDTO> result = mydataRiaAccountService.getAccountsByCiHash(request);
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getCiHash()).isEqualTo(ciHash);
+        assertThat(result.get(0).getBrokerName()).isEqualTo("증권사A");
     }
 
     @Test
-    void getAccountsByCiHash_ciHash가_null이면_예외를_던진다() {
-        assertThatThrownBy(() -> mydataRiaAccountService.getAccountsByCiHash(null))
-                .isInstanceOf(MydataRiaAccountException.class);
-
-        verifyNoInteractions(mydataRiaAccountMapper);
-    }
-
-    @Test
-    void getAccountsByCiHash_ciHash가_빈문자열이면_예외를_던진다() {
-        assertThatThrownBy(() -> mydataRiaAccountService.getAccountsByCiHash(""))
-                .isInstanceOf(MydataRiaAccountException.class);
-
-        verifyNoInteractions(mydataRiaAccountMapper);
-    }
-
-    @Test
-    void getAccountsByCiHash_등록되지않은_ciHash면_예외를_던진다() {
+    void getAccountsByCiHashThrowsExceptionWhenCiHashIsUnregistered() {
         String ciHash = "unknown-ci-hash";
+        MydataRiaAccountRequestDTO request = MydataRiaAccountRequestDTO.builder()
+                .ciHash(ciHash)
+                .build();
 
         when(mydataKeyMapper.existsByCiHash(ciHash)).thenReturn(0);
 
-        assertThatThrownBy(() -> mydataRiaAccountService.getAccountsByCiHash(ciHash))
-                .isInstanceOf(MydataRiaAccountException.class);
+        assertThatThrownBy(() -> mydataRiaAccountService.getAccountsByCiHash(request))
+                .isInstanceOf(MydataRiaAccountException.class)
+                .hasMessage("등록되지 않은 CiHash입니다.");
 
         verifyNoInteractions(mydataRiaAccountMapper);
     }
 
     @Test
-    void getAccountsByCiHash_조회결과가_없으면_NotFound예외를_던진다() {
+    void getAccountsByCiHashThrowsNotFoundExceptionWhenNoAccountsExist() {
         String ciHash = "test-ci-hash";
+        MydataRiaAccountRequestDTO request = MydataRiaAccountRequestDTO.builder()
+                .ciHash(ciHash)
+                .build();
 
         when(mydataKeyMapper.existsByCiHash(ciHash)).thenReturn(1);
         when(mydataRiaAccountMapper.selectByCiHash(ciHash)).thenReturn(List.of());
 
-        assertThatThrownBy(() -> mydataRiaAccountService.getAccountsByCiHash(ciHash))
-                .isInstanceOf(MydataRiaAccountNotFoundException.class);
+        assertThatThrownBy(() -> mydataRiaAccountService.getAccountsByCiHash(request))
+                .isInstanceOf(MydataRiaAccountNotFoundException.class)
+                .hasMessage("해당 ciHash에 대한 RIA 계좌 정보가 없습니다.");
     }
 }

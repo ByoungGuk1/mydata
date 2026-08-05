@@ -4,7 +4,7 @@
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.app.mydata.domain.mydata.mapper.MydataTradeMapper">
 
-    <select id="selectByCiHashAndPeriod" parameterType="map" resultType="MydataTradeDTO">
+    <select id="selectByCiHashAndPeriod" parameterType="MydataTradeRequestDTO" resultType="MydataTradeDTO">
         SELECT trade_id, ci_hash, broker_name, trade_type, stock_type, qty, trade_date, amount
         FROM mydata_trade
         WHERE ci_hash = #{ciHash}

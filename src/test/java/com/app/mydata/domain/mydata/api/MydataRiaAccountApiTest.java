@@ -2,53 +2,95 @@ package com.app.mydata.domain.mydata.api;
 
 import com.app.mydata.domain.mydata.dto.response.MydataRiaAccountResponseDTO;
 import com.app.mydata.domain.mydata.exception.MydataRiaAccountException;
+import com.app.mydata.domain.mydata.exception.MydataRiaAccountNotFoundException;
 import com.app.mydata.domain.mydata.service.MydataRiaAccountService;
+import com.app.mydata.global.exception.GlobalExceptionHandler;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
 import java.util.List;
+
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(MydataRiaAccountApi.class)
 class MydataRiaAccountApiTest {
 
-    @Autowired
-    MockMvc mockMvc;
+    private MydataRiaAccountService mydataRiaAccountService;
+    private MockMvc mockMvc;
 
-    @MockitoBean
-    MydataRiaAccountService mydataRiaAccountService;
+    @BeforeEach
+    void setUp() {
+        mydataRiaAccountService = mock(MydataRiaAccountService.class);
+        mockMvc = MockMvcBuilders
+                .standaloneSetup(new MydataRiaAccountApi(mydataRiaAccountService))
+                .setControllerAdvice(new GlobalExceptionHandler())
+                .build();
+    }
 
     @Test
-    void RIA계좌조회_성공시_200과_결과를_반환한다() throws Exception {
+    void getRiaAccountsAcceptsValidRequest() throws Exception {
         MydataRiaAccountResponseDTO response = MydataRiaAccountResponseDTO.builder()
                 .mydataAccountId(1L)
                 .ciHash("test-ci-hash")
+                .brokerName("증권사A")
                 .build();
-
-        when(mydataRiaAccountService.getAccountsByCiHash(eq("test-ci-hash")))
-                .thenReturn(List.of(response));
+        when(mydataRiaAccountService.getAccountsByCiHash(any())).thenReturn(List.of(response));
 
         mockMvc.perform(get("/api/mydata/ria-accounts")
                         .param("ciHash", "test-ci-hash"))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("myData RIA 계좌 조회 성공"))
                 .andExpect(jsonPath("$.data[0].mydataAccountId").value(1));
+
+        verify(mydataRiaAccountService).getAccountsByCiHash(any());
     }
 
     @Test
-    void ciHash가_없으면_예외발생시_400을_반환한다() throws Exception {
-        when(mydataRiaAccountService.getAccountsByCiHash(any()))
-                .thenThrow(new MydataRiaAccountException("ciHash는 필수입니다."));
+    void getRiaAccountsRejectsMissingCiHash() throws Exception {
+        mockMvc.perform(get("/api/mydata/ria-accounts"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("ciHash는 필수입니다."));
 
+        verify(mydataRiaAccountService, never()).getAccountsByCiHash(any());
+    }
+
+    @Test
+    void getRiaAccountsRejectsBlankCiHash() throws Exception {
         mockMvc.perform(get("/api/mydata/ria-accounts")
                         .param("ciHash", ""))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("ciHash는 필수입니다."));
+
+        verify(mydataRiaAccountService, never()).getAccountsByCiHash(any());
+    }
+
+    @Test
+    void getRiaAccountsReturnsBadRequestWhenCiHashUnregistered() throws Exception {
+        when(mydataRiaAccountService.getAccountsByCiHash(any()))
+                .thenThrow(new MydataRiaAccountException("등록되지 않은 CiHash입니다."));
+
+        mockMvc.perform(get("/api/mydata/ria-accounts")
+                        .param("ciHash", "unknown-ci-hash"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("등록되지 않은 CiHash입니다."));
+    }
+
+    @Test
+    void getRiaAccountsReturnsNotFoundWhenNoAccountsExist() throws Exception {
+        when(mydataRiaAccountService.getAccountsByCiHash(any()))
+                .thenThrow(new MydataRiaAccountNotFoundException("해당 ciHash에 대한 RIA 계좌 정보가 없습니다."));
+
+        mockMvc.perform(get("/api/mydata/ria-accounts")
+                        .param("ciHash", "test-ci-hash"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("해당 ciHash에 대한 RIA 계좌 정보가 없습니다."));
     }
 }

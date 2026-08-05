@@ -7,8 +7,10 @@ import com.app.mydata.domain.mydata.exception.MydataRiaAccountNotFoundException;
 import com.app.mydata.domain.mydata.exception.MydataTradeException;
 import com.app.mydata.domain.mydata.exception.MydataTradeNotFoundException;
 import com.app.mydata.global.response.ApiResponseDTO;
+import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -31,6 +33,7 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ApiResponseDTO<Void>> handleMydataTradeNotFound(MydataTradeNotFoundException e) {
     return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponseDTO.of(e.getMessage()));
   }
+
   @ExceptionHandler(MydataRiaAccountException.class)
   public ResponseEntity<ApiResponseDTO<Void>> handleMydataRiaAccountException(MydataRiaAccountException e) {
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponseDTO.of(e.getMessage()));
@@ -38,5 +41,14 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(MydataRiaAccountNotFoundException.class)
   public ResponseEntity<ApiResponseDTO<Void>> handleMydataRiaAccountNotFound(MydataRiaAccountNotFoundException e) {
     return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponseDTO.of(e.getMessage()));
+  }
+
+  @ExceptionHandler(BindException.class)
+  public ResponseEntity<ApiResponseDTO<Void>> handleBindException(BindException e) {
+    String message = e.getBindingResult().getFieldErrors().stream()
+            .findFirst()
+            .map(DefaultMessageSourceResolvable::getDefaultMessage)
+            .orElse("요청값이 올바르지 않습니다.");
+    return ResponseEntity.badRequest().body(ApiResponseDTO.of(message));
   }
 }
