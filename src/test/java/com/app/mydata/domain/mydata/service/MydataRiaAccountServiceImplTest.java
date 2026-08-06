@@ -1,10 +1,10 @@
 package com.app.mydata.domain.mydata.service;
 
+
 import com.app.mydata.domain.mydata.dto.MydataRiaAccountDTO;
 import com.app.mydata.domain.mydata.dto.request.MydataRiaAccountRequestDTO;
 import com.app.mydata.domain.mydata.dto.response.MydataRiaAccountResponseDTO;
 import com.app.mydata.domain.mydata.exception.MydataRiaAccountException;
-import com.app.mydata.domain.mydata.exception.MydataRiaAccountNotFoundException;
 import com.app.mydata.domain.mydata.mapper.MydataKeyMapper;
 import com.app.mydata.domain.mydata.mapper.MydataRiaAccountMapper;
 import org.junit.jupiter.api.Test;
@@ -75,7 +75,7 @@ class MydataRiaAccountServiceImplTest {
     }
 
     @Test
-    void getAccountsByCiHashThrowsNotFoundExceptionWhenNoAccountsExist() {
+    void getAccountsByCiHashReturnsEmptyListWhenNoAccountsExist() {
         String ciHash = "test-ci-hash";
         MydataRiaAccountRequestDTO request = MydataRiaAccountRequestDTO.builder()
                 .ciHash(ciHash)
@@ -84,8 +84,8 @@ class MydataRiaAccountServiceImplTest {
         when(mydataKeyMapper.existsByCiHash(ciHash)).thenReturn(1);
         when(mydataRiaAccountMapper.selectByCiHash(ciHash)).thenReturn(List.of());
 
-        assertThatThrownBy(() -> mydataRiaAccountService.getAccountsByCiHash(request))
-                .isInstanceOf(MydataRiaAccountNotFoundException.class)
-                .hasMessage("해당 ciHash에 대한 RIA 계좌 정보가 없습니다.");
+        List<MydataRiaAccountResponseDTO> result = mydataRiaAccountService.getAccountsByCiHash(request);
+
+        assertThat(result).isEmpty();
     }
 }

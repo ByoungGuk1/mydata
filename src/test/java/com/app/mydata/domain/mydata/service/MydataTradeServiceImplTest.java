@@ -4,7 +4,6 @@ import com.app.mydata.domain.mydata.dto.MydataTradeDTO;
 import com.app.mydata.domain.mydata.dto.request.MydataTradeRequestDTO;
 import com.app.mydata.domain.mydata.dto.response.MydataTradeResponseDTO;
 import com.app.mydata.domain.mydata.exception.MydataTradeException;
-import com.app.mydata.domain.mydata.exception.MydataTradeNotFoundException;
 import com.app.mydata.domain.mydata.mapper.MydataKeyMapper;
 import com.app.mydata.domain.mydata.mapper.MydataTradeMapper;
 import com.app.mydata.domain.mydata.type.StockType;
@@ -83,7 +82,7 @@ class MydataTradeServiceImplTest {
     }
 
     @Test
-    void getTradesByCiHashThrowsNotFoundExceptionWhenNoTradesExist() {
+    void getTradesByCiHashReturnsEmptyListWhenNoTradesExist() {
         String ciHash = "test-ci-hash";
         MydataTradeRequestDTO request = MydataTradeRequestDTO.builder()
                 .ciHash(ciHash)
@@ -92,8 +91,8 @@ class MydataTradeServiceImplTest {
         when(mydataKeyMapper.existsByCiHash(ciHash)).thenReturn(1);
         when(mydataTradeMapper.selectByCiHashAndPeriod(request)).thenReturn(List.of());
 
-        assertThatThrownBy(() -> mydataTradeService.getTradesByCiHash(request))
-                .isInstanceOf(MydataTradeNotFoundException.class)
-                .hasMessage("해당 ciHash에 대한 거래 정보가 없습니다.");
+        List<MydataTradeResponseDTO> result = mydataTradeService.getTradesByCiHash(request);
+
+        assertThat(result).isEmpty();
     }
 }
