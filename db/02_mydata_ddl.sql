@@ -12,6 +12,7 @@ DROP TABLE IF EXISTS mydata_ria_account CASCADE;
 DROP TABLE IF EXISTS mydata_key CASCADE;
 
 -- 전 인구(10만) 중앙 키 테이블
+-- [SEED] data-generator가 채우는 테이블. 컬럼 추가/삭제 시 생성기 INSERT(컬럼목록+값)도 수정 후 재생성 필요 (seed.sql 직접 편집 금지).
 CREATE TABLE mydata_key (
     ci_hash VARCHAR(64) NOT NULL,
     PRIMARY KEY (ci_hash)
@@ -20,6 +21,7 @@ COMMENT ON TABLE  mydata_key         IS 'myData 전 인구 키';
 COMMENT ON COLUMN mydata_key.ci_hash IS 'HMAC-SHA256(정규화 주민번호, 공유 PEPPER). RIA/증권사와 동일 값';
 
 -- 타사 RIA 계좌(A4 설정한도 합산 대상)
+-- [SEED] data-generator가 채우는 테이블. 컬럼 추가/삭제 시 생성기 INSERT(컬럼목록+값)도 수정 후 재생성 필요 (seed.sql 직접 편집 금지).
 CREATE TABLE mydata_ria_account (
     mydata_account_id   BIGINT        GENERATED ALWAYS AS IDENTITY,
     ci_hash             VARCHAR(64)   NOT NULL,
@@ -35,6 +37,7 @@ COMMENT ON COLUMN mydata_ria_account.ria_limit           IS '해당 증권사 RI
 COMMENT ON COLUMN mydata_ria_account.ria_cumulative_sell IS '해당 증권사 RIA 누적매도금액(크로스체크 보조)';
 
 -- 전 금융기관 매매(연동 감시 원천, G1/G3)
+-- [SEED] data-generator가 채우는 테이블. 컬럼 추가/삭제 시 생성기 INSERT(컬럼목록+값)도 수정 후 재생성 필요 (seed.sql 직접 편집 금지).
 CREATE TABLE mydata_trade (
     trade_id    BIGINT        GENERATED ALWAYS AS IDENTITY,
     ci_hash     VARCHAR(64)   NOT NULL,
