@@ -1,16 +1,16 @@
 package com.app.mydata.domain.mydata.service;
 
+
 import com.app.mydata.domain.mydata.dto.MydataTradeDTO;
 import com.app.mydata.domain.mydata.dto.request.MydataTradeRequestDTO;
 import com.app.mydata.domain.mydata.dto.response.MydataTradeResponseDTO;
 import com.app.mydata.domain.mydata.exception.MydataTradeException;
-import com.app.mydata.domain.mydata.exception.MydataTradeNotFoundException;
 import com.app.mydata.domain.mydata.mapper.MydataKeyMapper;
 import com.app.mydata.domain.mydata.mapper.MydataTradeMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.time.LocalDate;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -33,10 +33,6 @@ public class MydataTradeServiceImpl implements MydataTradeService {
         }
 
         List<MydataTradeDTO> trades = mydataTradeMapper.selectByCiHashAndPeriod(request);
-
-        if (trades.isEmpty()) {
-            throw new MydataTradeNotFoundException("해당 ciHash에 대한 거래 정보가 없습니다.");
-        }
 
         return trades.stream()
                 .map(MydataTradeResponseDTO::of)
