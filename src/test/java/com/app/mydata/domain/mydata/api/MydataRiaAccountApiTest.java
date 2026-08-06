@@ -3,7 +3,6 @@ package com.app.mydata.domain.mydata.api;
 import com.app.mydata.domain.mydata.dto.request.MydataRiaAccountRequestDTO;
 import com.app.mydata.domain.mydata.dto.response.MydataRiaAccountResponseDTO;
 import com.app.mydata.domain.mydata.exception.MydataRiaAccountException;
-import com.app.mydata.domain.mydata.exception.MydataRiaAccountNotFoundException;
 import com.app.mydata.domain.mydata.service.MydataRiaAccountService;
 import com.app.mydata.global.exception.GlobalExceptionHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -105,9 +104,8 @@ class MydataRiaAccountApiTest {
     }
 
     @Test
-    void getRiaAccountsReturnsNotFoundWhenNoAccountsExist() throws Exception {
-        when(mydataRiaAccountService.getAccountsByCiHash(any()))
-                .thenThrow(new MydataRiaAccountNotFoundException("해당 ciHash에 대한 RIA 계좌 정보가 없습니다."));
+    void getRiaAccountsReturnsEmptyListWhenNoAccountsExist() throws Exception {
+        when(mydataRiaAccountService.getAccountsByCiHash(any())).thenReturn(List.of());
 
         MydataRiaAccountRequestDTO request = MydataRiaAccountRequestDTO.builder()
                 .ciHash("test-ci-hash")
@@ -116,7 +114,8 @@ class MydataRiaAccountApiTest {
         mockMvc.perform(post("/api/mydata/ria-accounts")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.message").value("해당 ciHash에 대한 RIA 계좌 정보가 없습니다."));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data").isEmpty());
     }
 }

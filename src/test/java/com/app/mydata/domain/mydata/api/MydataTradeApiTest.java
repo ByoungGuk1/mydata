@@ -3,7 +3,6 @@ package com.app.mydata.domain.mydata.api;
 import com.app.mydata.domain.mydata.dto.request.MydataTradeRequestDTO;
 import com.app.mydata.domain.mydata.dto.response.MydataTradeResponseDTO;
 import com.app.mydata.domain.mydata.exception.MydataTradeException;
-import com.app.mydata.domain.mydata.exception.MydataTradeNotFoundException;
 import com.app.mydata.domain.mydata.service.MydataTradeService;
 import com.app.mydata.global.exception.GlobalExceptionHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -127,9 +126,8 @@ class MydataTradeApiTest {
     }
 
     @Test
-    void getTradesReturnsNotFoundWhenNoTradesExist() throws Exception {
-        when(mydataTradeService.getTradesByCiHash(any()))
-                .thenThrow(new MydataTradeNotFoundException("해당 ciHash에 대한 거래 정보가 없습니다."));
+    void getTradesReturnsEmptyListWhenNoTradesExist() throws Exception {
+        when(mydataTradeService.getTradesByCiHash(any())).thenReturn(List.of());
 
         MydataTradeRequestDTO request = MydataTradeRequestDTO.builder()
                 .ciHash("test-ci-hash")
@@ -138,7 +136,8 @@ class MydataTradeApiTest {
         mockMvc.perform(post("/api/mydata/trades")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.message").value("해당 ciHash에 대한 거래 정보가 없습니다."));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data").isEmpty());
     }
 }
