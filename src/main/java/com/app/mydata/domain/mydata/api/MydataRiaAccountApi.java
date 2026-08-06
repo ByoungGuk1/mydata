@@ -18,10 +18,10 @@ public class MydataRiaAccountApi {
 
     private final MydataRiaAccountService mydataRiaAccountService;
 
-    @GetMapping
+    @PostMapping
     public ResponseEntity<ApiResponseDTO<List<MydataRiaAccountResponseDTO>>> getRiaAccounts(
-            @Valid @ModelAttribute MydataRiaAccountRequestDTO request
-            ) {
+            @Valid @RequestBody MydataRiaAccountRequestDTO request
+    ) {
         List<MydataRiaAccountResponseDTO> result = mydataRiaAccountService.getAccountsByCiHash(request);
         return ResponseEntity.ok(ApiResponseDTO.of("myData RIA 계좌 조회 성공", result));
     }

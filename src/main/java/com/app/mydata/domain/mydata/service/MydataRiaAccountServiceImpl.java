@@ -39,7 +39,7 @@ public class MydataRiaAccountServiceImpl implements MydataRiaAccountService {
         }
 
         return accounts.stream()
-                .map(MydataRiaAccountResponseDTO::new)
+                .map(MydataRiaAccountResponseDTO::of)
                 .collect(Collectors.toList());
     }
 }
