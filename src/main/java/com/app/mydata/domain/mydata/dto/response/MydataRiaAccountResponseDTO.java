@@ -15,11 +15,13 @@ public class MydataRiaAccountResponseDTO {
     private BigDecimal riaLimit;
     private BigDecimal riaCumulativeSell;
 
-    public MydataRiaAccountResponseDTO(MydataRiaAccountDTO dto) {
-        this.mydataAccountId = dto.getMydataAccountId() != null ? dto.getMydataAccountId() : null;
-        this.ciHash = dto.getCiHash() != null ? dto.getCiHash() : null;
-        this.brokerName = dto.getBrokerName() != null ? dto.getBrokerName() : null;
-        this.riaLimit = dto.getRiaLimit() != null ? dto.getRiaLimit() : null;
-        this.riaCumulativeSell = dto.getRiaCumulativeSell() != null ? dto.getRiaCumulativeSell() : null;
+    public static MydataRiaAccountResponseDTO of(MydataRiaAccountDTO dto) {
+        return MydataRiaAccountResponseDTO.builder()
+                .mydataAccountId(dto.getMydataAccountId())
+                .ciHash(dto.getCiHash())
+                .brokerName(dto.getBrokerName())
+                .riaLimit(dto.getRiaLimit())
+                .riaCumulativeSell(dto.getRiaCumulativeSell())
+                .build();
     }
 }

@@ -39,7 +39,7 @@ public class MydataTradeServiceImpl implements MydataTradeService {
         }
 
         return trades.stream()
-                .map(MydataTradeResponseDTO::new)
+                .map(MydataTradeResponseDTO::of)
                 .collect(Collectors.toList());
     }
 }

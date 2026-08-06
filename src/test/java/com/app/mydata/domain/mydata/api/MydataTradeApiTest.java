@@ -1,15 +1,19 @@
 package com.app.mydata.domain.mydata.api;
 
+import com.app.mydata.domain.mydata.dto.request.MydataTradeRequestDTO;
 import com.app.mydata.domain.mydata.dto.response.MydataTradeResponseDTO;
 import com.app.mydata.domain.mydata.exception.MydataTradeException;
 import com.app.mydata.domain.mydata.exception.MydataTradeNotFoundException;
 import com.app.mydata.domain.mydata.service.MydataTradeService;
 import com.app.mydata.global.exception.GlobalExceptionHandler;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -17,7 +21,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -25,6 +29,7 @@ class MydataTradeApiTest {
 
     private MydataTradeService mydataTradeService;
     private MockMvc mockMvc;
+    private final ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 
     @BeforeEach
     void setUp() {
@@ -43,10 +48,15 @@ class MydataTradeApiTest {
                 .build();
         when(mydataTradeService.getTradesByCiHash(any())).thenReturn(List.of(response));
 
-        mockMvc.perform(get("/api/mydata/trades")
-                        .param("ciHash", "test-ci-hash")
-                        .param("fromDate", "2026-01-01")
-                        .param("toDate", "2026-12-31"))
+        MydataTradeRequestDTO request = MydataTradeRequestDTO.builder()
+                .ciHash("test-ci-hash")
+                .fromDate(LocalDate.of(2026, 1, 1))
+                .toDate(LocalDate.of(2026, 12, 31))
+                .build();
+
+        mockMvc.perform(post("/api/mydata/trades")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("myData 거래 내역 조회 성공"))
                 .andExpect(jsonPath("$.data[0].tradeId").value(1));
@@ -62,8 +72,13 @@ class MydataTradeApiTest {
                 .build();
         when(mydataTradeService.getTradesByCiHash(any())).thenReturn(List.of(response));
 
-        mockMvc.perform(get("/api/mydata/trades")
-                        .param("ciHash", "test-ci-hash"))
+        MydataTradeRequestDTO request = MydataTradeRequestDTO.builder()
+                .ciHash("test-ci-hash")
+                .build();
+
+        mockMvc.perform(post("/api/mydata/trades")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
 
         verify(mydataTradeService).getTradesByCiHash(any());
@@ -71,7 +86,9 @@ class MydataTradeApiTest {
 
     @Test
     void getTradesRejectsMissingCiHash() throws Exception {
-        mockMvc.perform(get("/api/mydata/trades"))
+        mockMvc.perform(post("/api/mydata/trades")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("ciHash는 필수입니다."));
 
@@ -80,8 +97,13 @@ class MydataTradeApiTest {
 
     @Test
     void getTradesRejectsBlankCiHash() throws Exception {
-        mockMvc.perform(get("/api/mydata/trades")
-                        .param("ciHash", ""))
+        MydataTradeRequestDTO request = MydataTradeRequestDTO.builder()
+                .ciHash("")
+                .build();
+
+        mockMvc.perform(post("/api/mydata/trades")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("ciHash는 필수입니다."));
 
@@ -93,8 +115,13 @@ class MydataTradeApiTest {
         when(mydataTradeService.getTradesByCiHash(any()))
                 .thenThrow(new MydataTradeException("등록되지 않은 CiHash입니다."));
 
-        mockMvc.perform(get("/api/mydata/trades")
-                        .param("ciHash", "unknown-ci-hash"))
+        MydataTradeRequestDTO request = MydataTradeRequestDTO.builder()
+                .ciHash("unknown-ci-hash")
+                .build();
+
+        mockMvc.perform(post("/api/mydata/trades")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("등록되지 않은 CiHash입니다."));
     }
@@ -104,8 +131,13 @@ class MydataTradeApiTest {
         when(mydataTradeService.getTradesByCiHash(any()))
                 .thenThrow(new MydataTradeNotFoundException("해당 ciHash에 대한 거래 정보가 없습니다."));
 
-        mockMvc.perform(get("/api/mydata/trades")
-                        .param("ciHash", "test-ci-hash"))
+        MydataTradeRequestDTO request = MydataTradeRequestDTO.builder()
+                .ciHash("test-ci-hash")
+                .build();
+
+        mockMvc.perform(post("/api/mydata/trades")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("해당 ciHash에 대한 거래 정보가 없습니다."));
     }
