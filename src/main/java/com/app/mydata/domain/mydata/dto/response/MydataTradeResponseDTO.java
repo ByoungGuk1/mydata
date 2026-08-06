@@ -20,14 +20,16 @@ public class MydataTradeResponseDTO {
     private LocalDate tradeDate;
     private BigDecimal amount;
 
-    public MydataTradeResponseDTO(MydataTradeDTO dto) {
-        this.tradeId = dto.getTradeId() != null ? dto.getTradeId() : null;
-        this.ciHash = dto.getCiHash() != null ? dto.getCiHash() : null;
-        this.brokerName = dto.getBrokerName() != null ? dto.getBrokerName() : null;
-        this.tradeType = dto.getTradeType() != null ? dto.getTradeType() : null;
-        this.stockType = dto.getStockType() != null ? dto.getStockType() : null;
-        this.qty = dto.getQty() != null ? dto.getQty() : null;
-        this.tradeDate = dto.getTradeDate() != null ? dto.getTradeDate() : null;
-        this.amount = dto.getAmount() != null ? dto.getAmount() : null;
+    public static MydataTradeResponseDTO of(MydataTradeDTO dto) {
+        return MydataTradeResponseDTO.builder()
+                .tradeId(dto.getTradeId())
+                .ciHash(dto.getCiHash())
+                .brokerName(dto.getBrokerName())
+                .tradeType(dto.getTradeType())
+                .stockType(dto.getStockType())
+                .qty(dto.getQty())
+                .tradeDate(dto.getTradeDate())
+                .amount(dto.getAmount())
+                .build();
     }
 }

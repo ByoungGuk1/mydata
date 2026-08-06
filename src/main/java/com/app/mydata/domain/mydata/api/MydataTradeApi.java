@@ -8,7 +8,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -18,10 +17,10 @@ public class MydataTradeApi {
 
     private final MydataTradeService mydataTradeService;
 
-    @GetMapping
+    @PostMapping
     public ResponseEntity<ApiResponseDTO<List<MydataTradeResponseDTO>>> getTrades(
-            @Valid @ModelAttribute MydataTradeRequestDTO request
-            ) {
+            @Valid @RequestBody MydataTradeRequestDTO request
+    ) {
         List<MydataTradeResponseDTO> result = mydataTradeService.getTradesByCiHash(request);
         return ResponseEntity.ok(ApiResponseDTO.of("myData 거래 내역 조회 성공", result));
     }
