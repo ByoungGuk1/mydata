@@ -1,6 +1,7 @@
 package com.app.mydata.domain.mydata.api;
 
 import com.app.mydata.domain.mydata.dto.request.MydataRiaAccountRequestDTO;
+import com.app.mydata.domain.mydata.dto.request.RiaAccountRequestDTO;
 import com.app.mydata.domain.mydata.dto.response.MydataRiaAccountResponseDTO;
 import com.app.mydata.domain.mydata.exception.MydataRiaAccountException;
 import com.app.mydata.domain.mydata.service.MydataRiaAccountService;
@@ -12,6 +13,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -117,5 +119,49 @@ class MydataRiaAccountApiTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").isArray())
                 .andExpect(jsonPath("$.data").isEmpty());
+    }
+
+    @Test
+    void saveRiaAccountAcceptsNullCumulativeSell() throws Exception {
+        MydataRiaAccountResponseDTO response = MydataRiaAccountResponseDTO.builder()
+                .ciHash("test-ci-hash")
+                .brokerName("증권사A")
+                .riaLimit(BigDecimal.valueOf(30_000_000))
+                .riaCumulativeSell(BigDecimal.ZERO)
+                .build();
+        when(mydataRiaAccountService.saveRiaAccount(any())).thenReturn(response);
+
+        RiaAccountRequestDTO request = RiaAccountRequestDTO.builder()
+                .ciHash("test-ci-hash")
+                .brokerName("증권사A")
+                .riaLimit(BigDecimal.valueOf(30_000_000))
+                .riaCumulativeSell(null)
+                .build();
+
+        mockMvc.perform(post("/api/mydata/ria-accounts/save")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.message").value("myData RIA 계좌 등록 성공"))
+                .andExpect(jsonPath("$.data.riaCumulativeSell").value(0));
+
+        verify(mydataRiaAccountService).saveRiaAccount(any());
+    }
+
+    @Test
+    void saveRiaAccountRejectsNegativeCumulativeSell() throws Exception {
+        RiaAccountRequestDTO request = RiaAccountRequestDTO.builder()
+                .ciHash("test-ci-hash")
+                .brokerName("증권사A")
+                .riaLimit(BigDecimal.valueOf(30_000_000))
+                .riaCumulativeSell(BigDecimal.valueOf(-1))
+                .build();
+
+        mockMvc.perform(post("/api/mydata/ria-accounts/save")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+
+        verify(mydataRiaAccountService, never()).saveRiaAccount(any());
     }
 }
