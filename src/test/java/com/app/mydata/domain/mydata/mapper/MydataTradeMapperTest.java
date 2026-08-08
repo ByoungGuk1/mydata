@@ -146,6 +146,22 @@ class MydataTradeMapperTest {
         assertThat(result).isEmpty();
     }
 
+    @Test
+    @DisplayName("FUND 타입 거래는 fund_code가 저장/조회된다")
+    void selectByCiHashAndPeriodReturnsFundCodeWhenStockTypeIsFund() {
+        insertTrade("ci-1", LocalDate.of(2026, 3, 5), StockType.FUND, "KR5201234567");
+
+        MydataTradeRequestDTO request = MydataTradeRequestDTO.builder()
+                .ciHash("ci-1")
+                .build();
+
+        List<MydataTradeDTO> result = mydataTradeMapper.selectByCiHashAndPeriod(request);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getStockType()).isEqualTo(StockType.FUND);
+        assertThat(result.get(0).getFundCode()).isEqualTo("KR5201234567");
+    }
+
     private void resetSchema() throws SQLException {
         try (Connection connection = dataSource.getConnection();
              Statement statement = connection.createStatement()) {
@@ -157,6 +173,7 @@ class MydataTradeMapperTest {
                         broker_name VARCHAR(50) NOT NULL,
                         trade_type VARCHAR(20) NOT NULL,
                         stock_type VARCHAR(20) NOT NULL,
+                        fund_code VARCHAR(12) NULL,
                         qty DECIMAL(15, 2) NOT NULL,
                         trade_date DATE NOT NULL,
                         amount DECIMAL(15, 2) NOT NULL
@@ -166,11 +183,16 @@ class MydataTradeMapperTest {
     }
 
     private void insertTrade(String ciHash, LocalDate tradeDate) {
+        insertTrade(ciHash, tradeDate, StockType.FOREIGN_STOCK, null);
+    }
+
+    private void insertTrade(String ciHash, LocalDate tradeDate, StockType stockType, String fundCode) {
         MydataTradeDTO tradeDTO = MydataTradeDTO.builder()
                 .ciHash(ciHash)
                 .brokerName("증권사A")
                 .tradeType(TradeType.BUY)
-                .stockType(StockType.FOREIGN_STOCK)
+                .stockType(stockType)
+                .fundCode(fundCode)
                 .qty(BigDecimal.TEN)
                 .tradeDate(tradeDate)
                 .amount(BigDecimal.valueOf(1_000_000))
