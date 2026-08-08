@@ -4,6 +4,7 @@ import com.app.mydata.domain.mydata.dto.request.MydataTradeRequestDTO;
 import com.app.mydata.domain.mydata.dto.response.MydataTradeResponseDTO;
 import com.app.mydata.domain.mydata.exception.MydataTradeException;
 import com.app.mydata.domain.mydata.service.MydataTradeService;
+import com.app.mydata.domain.mydata.type.StockType;
 import com.app.mydata.global.exception.GlobalExceptionHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -81,6 +82,28 @@ class MydataTradeApiTest {
                 .andExpect(status().isOk());
 
         verify(mydataTradeService).getTradesByCiHash(any());
+    }
+
+    @Test
+    void getTradesIncludesFundCodeForFundTrades() throws Exception {
+        MydataTradeResponseDTO response = MydataTradeResponseDTO.builder()
+                .tradeId(2L)
+                .ciHash("test-ci-hash")
+                .stockType(StockType.FUND)
+                .fundCode("448630")
+                .build();
+        when(mydataTradeService.getTradesByCiHash(any())).thenReturn(List.of(response));
+
+        MydataTradeRequestDTO request = MydataTradeRequestDTO.builder()
+                .ciHash("test-ci-hash")
+                .build();
+
+        mockMvc.perform(post("/api/mydata/trades")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].stockType").value("FUND"))
+                .andExpect(jsonPath("$.data[0].fundCode").value("448630"));
     }
 
     @Test

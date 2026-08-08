@@ -5,7 +5,7 @@
 <mapper namespace="com.app.mydata.domain.mydata.mapper.MydataTradeMapper">
 
     <select id="selectByCiHashAndPeriod" parameterType="MydataTradeRequestDTO" resultType="MydataTradeDTO">
-        SELECT trade_id, ci_hash, broker_name, trade_type, stock_type, qty, trade_date, amount
+        SELECT trade_id, ci_hash, broker_name, trade_type, stock_type, fund_code, qty, trade_date, amount
         FROM mydata_trade
         WHERE ci_hash = #{ciHash}
         <if test="fromDate != null">
@@ -18,8 +18,10 @@
     </select>
 
     <insert id="insertTrade" parameterType="MydataTradeDTO">
-        INSERT INTO mydata_trade (ci_hash, broker_name, trade_type, stock_type, qty, trade_date, amount)
-        VALUES (#{ciHash}, #{brokerName}, #{tradeType}, #{stockType}, #{qty}, #{tradeDate}, #{amount})
+        INSERT INTO mydata_trade (ci_hash, broker_name, trade_type, stock_type, fund_code, qty, trade_date,
+        amount)
+        VALUES (#{ciHash}, #{brokerName}, #{tradeType}, #{stockType}, #{fundCode}, #{qty}, #{tradeDate},
+        #{amount})
     </insert>
 
 </mapper>
