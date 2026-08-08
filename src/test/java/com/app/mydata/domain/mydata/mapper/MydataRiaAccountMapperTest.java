@@ -20,6 +20,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -114,6 +115,39 @@ class MydataRiaAccountMapperTest {
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getRiaLimit()).isEqualByComparingTo(BigDecimal.valueOf(30_000_000));
         assertThat(result.get(0).getRiaCumulativeSell()).isEqualByComparingTo(BigDecimal.valueOf(5_000_000));
+    }
+
+    @Test
+    @DisplayName("ciHash와 증권사명이 모두 일치하는 계좌를 조회한다")
+    void selectByCiHashAndBrokerNameReturnsMatchingAccount() {
+        insertAccount("ci-1", "증권사A");
+        insertAccount("ci-1", "증권사B");
+
+        MydataRiaAccountDTO condition = MydataRiaAccountDTO.builder()
+                .ciHash("ci-1")
+                .brokerName("증권사B")
+                .build();
+
+        Optional<MydataRiaAccountDTO> result =
+                mydataRiaAccountMapper.selectByCiHashAndBrokerName(condition);
+
+        assertThat(result).isPresent();
+        assertThat(result.orElseThrow().getBrokerName()).isEqualTo("증권사B");
+    }
+
+    @Test
+    @DisplayName("계좌 ID, ciHash, 증권사명이 일치하면 한도와 누적매도금액을 수정한다")
+    void updateAccountUpdatesMatchingAccount() {
+        insertAccount("ci-1", "증권사A");
+        MydataRiaAccountDTO savedAccount = mydataRiaAccountMapper.selectByCiHash("ci-1").get(0);
+        savedAccount.setRiaLimit(BigDecimal.valueOf(40_000_000));
+        savedAccount.setRiaCumulativeSell(BigDecimal.valueOf(10_000_000));
+
+        mydataRiaAccountMapper.updateAccount(savedAccount);
+
+        MydataRiaAccountDTO result = mydataRiaAccountMapper.selectByCiHash("ci-1").get(0);
+        assertThat(result.getRiaLimit()).isEqualByComparingTo(BigDecimal.valueOf(40_000_000));
+        assertThat(result.getRiaCumulativeSell()).isEqualByComparingTo(BigDecimal.valueOf(10_000_000));
     }
 
     private void resetSchema() throws SQLException {

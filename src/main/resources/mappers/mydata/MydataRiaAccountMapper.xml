@@ -15,4 +15,20 @@
         VALUES (#{ciHash}, #{brokerName}, #{riaLimit}, #{riaCumulativeSell})
     </insert>
 
+    <select id="selectByCiHashAndBrokerName" parameterType="MydataRiaAccountDTO" resultType="MydataRiaAccountDTO">
+        SELECT mydata_account_id, ci_hash, broker_name, ria_limit, ria_cumulative_sell
+        FROM mydata_ria_account
+        WHERE ci_hash = #{ciHash} AND broker_name = #{brokerName}
+    </select>
+
+    <update id="updateAccount" parameterType="MydataRiaAccountDTO">
+        update mydata_ria_account
+            set ria_limit = #{riaLimit}, ria_cumulative_sell = #{riaCumulativeSell}
+        where mydata_account_id = #{mydataAccountId}
+            AND
+                ci_hash = #{ciHash}
+            AND
+                broker_name = #{brokerName}
+    </update>
+
 </mapper>

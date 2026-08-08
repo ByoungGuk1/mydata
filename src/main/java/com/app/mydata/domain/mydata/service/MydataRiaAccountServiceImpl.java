@@ -2,6 +2,7 @@ package com.app.mydata.domain.mydata.service;
 
 import com.app.mydata.domain.mydata.dto.MydataRiaAccountDTO;
 import com.app.mydata.domain.mydata.dto.request.MydataRiaAccountRequestDTO;
+import com.app.mydata.domain.mydata.dto.request.RiaAccountRequestDTO;
 import com.app.mydata.domain.mydata.dto.response.MydataRiaAccountResponseDTO;
 import com.app.mydata.domain.mydata.exception.MydataRiaAccountException;
 import com.app.mydata.domain.mydata.mapper.MydataKeyMapper;
@@ -36,5 +37,22 @@ public class MydataRiaAccountServiceImpl implements MydataRiaAccountService {
         return accounts.stream()
                 .map(MydataRiaAccountResponseDTO::of)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public MydataRiaAccountResponseDTO saveRiaAccount(RiaAccountRequestDTO riaAccountRequestDTO) {
+        MydataRiaAccountDTO riaAccountDTO = riaAccountRequestDTO.toDTO();
+        if (mydataKeyMapper.existsByCiHash(riaAccountDTO.getCiHash()) == 0) {
+            throw new MydataRiaAccountException("등록되지 않은 사용자 입니다.");
+        }
+
+        mydataRiaAccountMapper.selectByCiHashAndBrokerName(riaAccountDTO).ifPresentOrElse((foundDTO)->{
+            riaAccountDTO.setMydataAccountId(foundDTO.getMydataAccountId());
+            mydataRiaAccountMapper.updateAccount(riaAccountDTO);
+        },()->{
+            mydataRiaAccountMapper.insertAccount(riaAccountDTO);
+        });
+
+        return MydataRiaAccountResponseDTO.of(mydataRiaAccountMapper.selectByCiHashAndBrokerName(riaAccountDTO).orElseThrow(()->new MydataRiaAccountException("재조회 실패")));
     }
 }
