@@ -11,6 +11,7 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @Getter @Setter @ToString @Builder
 public class MydataTradeResponseDTO {
+
     private Long tradeId;
     private String ciHash;
     private String brokerName;
@@ -19,6 +20,7 @@ public class MydataTradeResponseDTO {
     private BigDecimal qty;
     private LocalDate tradeDate;
     private BigDecimal amount;
+    private String fundCode;
 
     public static MydataTradeResponseDTO of(MydataTradeDTO dto) {
         return MydataTradeResponseDTO.builder()
@@ -30,6 +32,7 @@ public class MydataTradeResponseDTO {
                 .qty(dto.getQty())
                 .tradeDate(dto.getTradeDate())
                 .amount(dto.getAmount())
+                .fundCode(dto.getFundCode())
                 .build();
     }
 }
