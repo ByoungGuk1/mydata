@@ -66,7 +66,8 @@ CREATE TABLE mydata_trade (
                               CONSTRAINT chk_mydata_trade_type       CHECK (trade_type IN ('BUY','SELL','INHERITANCE','GIFT')),
                               CONSTRAINT chk_mydata_trade_stock_type CHECK (stock_type IN ('FOREIGN_STOCK','ETF','ETN','FUND')),
                               CONSTRAINT fk_mydata_trade__key        FOREIGN KEY (ci_hash) REFERENCES mydata_key (ci_hash),
-                              CONSTRAINT fk_mydata_trade__fund       FOREIGN KEY (fund_code) REFERENCES mydata_fund (fund_code)
+                              CONSTRAINT fk_mydata_trade__fund       FOREIGN KEY (fund_code) REFERENCES mydata_fund (fund_code),
+                              CONSTRAINT chk_mydata_trade_fund_code  CHECK ((stock_type = 'FUND' AND fund_code IS NOT NULL) OR (stock_type <> 'FUND' AND fund_code IS NULL))
 );
 COMMENT ON TABLE  mydata_trade             IS '전 금융기관 매매';
 COMMENT ON COLUMN mydata_trade.broker_name IS '증권사/금융기관';
