@@ -9,6 +9,7 @@ import com.app.mydata.global.exception.GlobalExceptionHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -16,6 +17,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.time.LocalDate;
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -104,6 +106,25 @@ class MydataTradeApiTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data[0].stockType").value("FUND"))
                 .andExpect(jsonPath("$.data[0].fundCode").value("448630"));
+    }
+
+    @Test
+    void getTradesParsesFromDateWhenSentAsJsonArray() throws Exception {
+        // maria의 RestClient는 Spring Boot가 커스터마이징하지 않은 기본 ObjectMapper를 쓰기 때문에
+        // LocalDate를 ISO 문자열이 아니라 [year,month,day] 배열로 직렬화해서 보낸다.
+        // 이 요청이 실제로 mydata 컨트롤러에서 올바르게 역직렬화되는지 검증한다.
+        when(mydataTradeService.getTradesByCiHash(any())).thenReturn(List.of());
+
+        String rawBody = "{\"ciHash\":\"test-ci-hash\",\"fromDate\":[2026,3,1]}";
+
+        mockMvc.perform(post("/api/mydata/trades")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(rawBody))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<MydataTradeRequestDTO> captor = ArgumentCaptor.forClass(MydataTradeRequestDTO.class);
+        verify(mydataTradeService).getTradesByCiHash(captor.capture());
+        assertThat(captor.getValue().getFromDate()).isEqualTo(LocalDate.of(2026, 3, 1));
     }
 
     @Test
