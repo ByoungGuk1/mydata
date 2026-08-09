@@ -11,5 +11,7 @@ public interface MydataRiaAccountService {
             MydataRiaAccountRequestDTO request
     );
 
-    MydataRiaAccountResponseDTO saveRiaAccount(RiaAccountRequestDTO riaAccountRequestDTO);
+    MydataRiaAccountResponseDTO createRiaAccount(RiaAccountRequestDTO riaAccountRequestDTO);
+
+    MydataRiaAccountResponseDTO updateRiaAccountLimit(RiaAccountRequestDTO riaAccountRequestDTO);
 }
