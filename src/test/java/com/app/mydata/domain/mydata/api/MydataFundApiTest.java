@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 import static org.mockito.ArgumentMatchers.eq;
@@ -38,7 +39,7 @@ class MydataFundApiTest {
         MydataFundResponseDTO response = MydataFundResponseDTO.builder()
                 .fundCode("448630")
                 .fundName("TIGER 미국배당다우존스")
-                .foreignStockRatio(72.50)
+                .foreignStockRatio(BigDecimal.valueOf(72.50))
                 .inceptionDate(LocalDate.of(2023, 5, 10))
                 .build();
         when(mydataFundService.getFundByCode("448630")).thenReturn(response);

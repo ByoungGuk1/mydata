@@ -10,6 +10,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Optional;
 
@@ -32,7 +33,7 @@ class MydataFundServiceImplTest {
         MydataFundDTO dto = MydataFundDTO.builder()
                 .fundCode(fundCode)
                 .fundName("TIGER 미국배당다우존스")
-                .foreignStockRatio(72.50)
+                .foreignStockRatio(BigDecimal.valueOf(72.50))
                 .inceptionDate(LocalDate.of(2023, 5, 10))
                 .build();
         when(mydataFundMapper.selectByFundCode(fundCode)).thenReturn(Optional.of(dto));
@@ -41,7 +42,7 @@ class MydataFundServiceImplTest {
 
         assertThat(result.getFundCode()).isEqualTo(fundCode);
         assertThat(result.getFundName()).isEqualTo("TIGER 미국배당다우존스");
-        assertThat(result.getForeignStockRatio()).isEqualTo(72.50);
+        assertThat(result.getForeignStockRatio()).isEqualByComparingTo(BigDecimal.valueOf(72.50));
         assertThat(result.getInceptionDate()).isEqualTo(LocalDate.of(2023, 5, 10));
     }
 
