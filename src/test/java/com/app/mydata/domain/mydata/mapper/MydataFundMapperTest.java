@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.io.Reader;
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -74,7 +75,7 @@ class MydataFundMapperTest {
         assertThat(result).isPresent();
         assertThat(result.get().getFundCode()).isEqualTo("448630");
         assertThat(result.get().getFundName()).isEqualTo("TIGER 미국배당다우존스");
-        assertThat(result.get().getForeignStockRatio()).isEqualTo(72.50);
+        assertThat(result.get().getForeignStockRatio()).isEqualByComparingTo(BigDecimal.valueOf(72.50));
         assertThat(result.get().getInceptionDate()).isEqualTo(LocalDate.of(2023, 5, 10));
     }
 

@@ -3,6 +3,7 @@ package com.app.mydata.domain.mydata.dto.response;
 import com.app.mydata.domain.mydata.dto.MydataFundDTO;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @AllArgsConstructor
@@ -15,7 +16,7 @@ public class MydataFundResponseDTO {
 
     private String fundCode;
     private String fundName;
-    private Double foreignStockRatio;
+    private BigDecimal foreignStockRatio;
     private LocalDate inceptionDate;
 
     public static MydataFundResponseDTO of (MydataFundDTO dto) {
