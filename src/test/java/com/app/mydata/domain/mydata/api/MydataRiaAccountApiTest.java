@@ -4,6 +4,7 @@ import com.app.mydata.domain.mydata.dto.request.MydataRiaAccountRequestDTO;
 import com.app.mydata.domain.mydata.dto.request.RiaAccountLimitUpdateRequestDTO;
 import com.app.mydata.domain.mydata.dto.request.RiaAccountRequestDTO;
 import com.app.mydata.domain.mydata.dto.response.MydataRiaAccountResponseDTO;
+import com.app.mydata.domain.mydata.dto.response.RiaAccountCreateResult;
 import com.app.mydata.domain.mydata.exception.MydataRiaAccountException;
 import com.app.mydata.domain.mydata.service.MydataRiaAccountService;
 import com.app.mydata.global.exception.GlobalExceptionHandler;
@@ -131,7 +132,7 @@ class MydataRiaAccountApiTest {
                 .riaLimit(BigDecimal.valueOf(30_000_000))
                 .riaCumulativeSell(BigDecimal.ZERO)
                 .build();
-        when(mydataRiaAccountService.createRiaAccount(any())).thenReturn(response);
+        when(mydataRiaAccountService.createRiaAccount(any())).thenReturn(new RiaAccountCreateResult(response, true));
 
         RiaAccountRequestDTO request = RiaAccountRequestDTO.builder()
                 .ciHash("test-ci-hash")
@@ -148,6 +149,30 @@ class MydataRiaAccountApiTest {
                 .andExpect(jsonPath("$.data.riaCumulativeSell").value(0));
 
         verify(mydataRiaAccountService).createRiaAccount(any());
+    }
+
+    @Test
+    void createRiaAccountReturnsOkWhenAccountAlreadyExists() throws Exception {
+        MydataRiaAccountResponseDTO response = MydataRiaAccountResponseDTO.builder()
+                .mydataAccountId(1L)
+                .ciHash("test-ci-hash")
+                .brokerName("증권사A")
+                .riaLimit(BigDecimal.valueOf(30_000_000))
+                .riaCumulativeSell(BigDecimal.ZERO)
+                .build();
+        when(mydataRiaAccountService.createRiaAccount(any())).thenReturn(new RiaAccountCreateResult(response, false));
+
+        RiaAccountRequestDTO request = RiaAccountRequestDTO.builder()
+                .ciHash("test-ci-hash")
+                .brokerName("증권사A")
+                .riaLimit(BigDecimal.valueOf(30_000_000))
+                .build();
+
+        mockMvc.perform(post("/api/mydata/ria-accounts/save")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.mydataAccountId").value(1));
     }
 
     @Test

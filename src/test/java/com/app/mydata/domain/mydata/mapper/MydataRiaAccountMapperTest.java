@@ -160,7 +160,8 @@ class MydataRiaAccountMapperTest {
                         ci_hash VARCHAR(64) NOT NULL,
                         broker_name VARCHAR(50) NOT NULL,
                         ria_limit DECIMAL(15, 2) NOT NULL,
-                        ria_cumulative_sell DECIMAL(15, 2) NOT NULL
+                        ria_cumulative_sell DECIMAL(15, 2) NOT NULL,
+                        UNIQUE (ci_hash, broker_name)
                     )
                     """);
         }

@@ -6,6 +6,7 @@ import com.app.mydata.domain.mydata.dto.request.MydataRiaAccountRequestDTO;
 import com.app.mydata.domain.mydata.dto.request.RiaAccountLimitUpdateRequestDTO;
 import com.app.mydata.domain.mydata.dto.request.RiaAccountRequestDTO;
 import com.app.mydata.domain.mydata.dto.response.MydataRiaAccountResponseDTO;
+import com.app.mydata.domain.mydata.dto.response.RiaAccountCreateResult;
 import com.app.mydata.domain.mydata.exception.MydataRiaAccountException;
 import com.app.mydata.domain.mydata.exception.MydataRiaAccountNotFoundException;
 import com.app.mydata.domain.mydata.mapper.MydataKeyMapper;
@@ -16,6 +17,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DuplicateKeyException;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -115,13 +117,66 @@ class MydataRiaAccountServiceImplTest {
                 .thenReturn(Optional.empty())
                 .thenReturn(Optional.of(savedAccount));
 
-        MydataRiaAccountResponseDTO result = mydataRiaAccountService.createRiaAccount(request);
+        RiaAccountCreateResult result = mydataRiaAccountService.createRiaAccount(request);
 
         ArgumentCaptor<MydataRiaAccountDTO> captor = ArgumentCaptor.forClass(MydataRiaAccountDTO.class);
         verify(mydataRiaAccountMapper).insertAccount(captor.capture());
         assertThat(captor.getValue().getRiaCumulativeSell()).isEqualByComparingTo(BigDecimal.ZERO);
-        assertThat(result.getMydataAccountId()).isEqualTo(1L);
-        assertThat(result.getRiaCumulativeSell()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(result.isCreated()).isTrue();
+        assertThat(result.getAccount().getMydataAccountId()).isEqualTo(1L);
+        assertThat(result.getAccount().getRiaCumulativeSell()).isEqualByComparingTo(BigDecimal.ZERO);
+    }
+
+    @Test
+    void createRiaAccountReturnsExistingAccountWithoutInsert() {
+        RiaAccountRequestDTO request = RiaAccountRequestDTO.builder()
+                .ciHash("test-ci-hash")
+                .brokerName("증권사A")
+                .riaLimit(BigDecimal.valueOf(30_000_000))
+                .build();
+        MydataRiaAccountDTO existingAccount = MydataRiaAccountDTO.builder()
+                .mydataAccountId(1L)
+                .ciHash("test-ci-hash")
+                .brokerName("증권사A")
+                .riaLimit(BigDecimal.valueOf(30_000_000))
+                .riaCumulativeSell(BigDecimal.ZERO)
+                .build();
+        when(mydataKeyMapper.existsByCiHash("test-ci-hash")).thenReturn(1);
+        when(mydataRiaAccountMapper.selectByCiHashAndBrokerName(org.mockito.ArgumentMatchers.any()))
+                .thenReturn(Optional.of(existingAccount));
+
+        RiaAccountCreateResult result = mydataRiaAccountService.createRiaAccount(request);
+
+        assertThat(result.isCreated()).isFalse();
+        assertThat(result.getAccount().getMydataAccountId()).isEqualTo(1L);
+        verify(mydataRiaAccountMapper, org.mockito.Mockito.never()).insertAccount(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void createRiaAccountReturnsExistingAccountAfterConcurrentInsert() {
+        RiaAccountRequestDTO request = RiaAccountRequestDTO.builder()
+                .ciHash("test-ci-hash")
+                .brokerName("증권사A")
+                .riaLimit(BigDecimal.valueOf(30_000_000))
+                .build();
+        MydataRiaAccountDTO existingAccount = MydataRiaAccountDTO.builder()
+                .mydataAccountId(2L)
+                .ciHash("test-ci-hash")
+                .brokerName("증권사A")
+                .riaLimit(BigDecimal.valueOf(30_000_000))
+                .riaCumulativeSell(BigDecimal.ZERO)
+                .build();
+        when(mydataKeyMapper.existsByCiHash("test-ci-hash")).thenReturn(1);
+        when(mydataRiaAccountMapper.selectByCiHashAndBrokerName(org.mockito.ArgumentMatchers.any()))
+                .thenReturn(Optional.empty())
+                .thenReturn(Optional.of(existingAccount));
+        org.mockito.Mockito.doThrow(new DuplicateKeyException("duplicate"))
+                .when(mydataRiaAccountMapper).insertAccount(org.mockito.ArgumentMatchers.any());
+
+        RiaAccountCreateResult result = mydataRiaAccountService.createRiaAccount(request);
+
+        assertThat(result.isCreated()).isFalse();
+        assertThat(result.getAccount().getMydataAccountId()).isEqualTo(2L);
     }
 
     @Test

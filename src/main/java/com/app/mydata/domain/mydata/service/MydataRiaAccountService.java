@@ -4,6 +4,7 @@ import com.app.mydata.domain.mydata.dto.request.MydataRiaAccountRequestDTO;
 import com.app.mydata.domain.mydata.dto.request.RiaAccountLimitUpdateRequestDTO;
 import com.app.mydata.domain.mydata.dto.request.RiaAccountRequestDTO;
 import com.app.mydata.domain.mydata.dto.response.MydataRiaAccountResponseDTO;
+import com.app.mydata.domain.mydata.dto.response.RiaAccountCreateResult;
 import java.util.List;
 
 public interface MydataRiaAccountService {
@@ -12,7 +13,7 @@ public interface MydataRiaAccountService {
             MydataRiaAccountRequestDTO request
     );
 
-    MydataRiaAccountResponseDTO createRiaAccount(RiaAccountRequestDTO riaAccountRequestDTO);
+    RiaAccountCreateResult createRiaAccount(RiaAccountRequestDTO riaAccountRequestDTO);
 
     MydataRiaAccountResponseDTO updateRiaAccountLimit(RiaAccountLimitUpdateRequestDTO request);
 }

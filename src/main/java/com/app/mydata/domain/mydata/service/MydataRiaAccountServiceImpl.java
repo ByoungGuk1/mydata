@@ -5,13 +5,16 @@ import com.app.mydata.domain.mydata.dto.request.MydataRiaAccountRequestDTO;
 import com.app.mydata.domain.mydata.dto.request.RiaAccountLimitUpdateRequestDTO;
 import com.app.mydata.domain.mydata.dto.request.RiaAccountRequestDTO;
 import com.app.mydata.domain.mydata.dto.response.MydataRiaAccountResponseDTO;
+import com.app.mydata.domain.mydata.dto.response.RiaAccountCreateResult;
 import com.app.mydata.domain.mydata.exception.MydataRiaAccountException;
 import com.app.mydata.domain.mydata.exception.MydataRiaAccountNotFoundException;
 import com.app.mydata.domain.mydata.mapper.MydataKeyMapper;
 import com.app.mydata.domain.mydata.mapper.MydataRiaAccountMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -42,19 +45,27 @@ public class MydataRiaAccountServiceImpl implements MydataRiaAccountService {
     }
 
     @Override
-    public MydataRiaAccountResponseDTO createRiaAccount(RiaAccountRequestDTO riaAccountRequestDTO) {
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public RiaAccountCreateResult createRiaAccount(RiaAccountRequestDTO riaAccountRequestDTO) {
         MydataRiaAccountDTO riaAccountDTO = riaAccountRequestDTO.toDTO();
         if (mydataKeyMapper.existsByCiHash(riaAccountDTO.getCiHash()) == 0) {
             throw new MydataRiaAccountException("등록되지 않은 사용자 입니다.");
         }
 
-        if (mydataRiaAccountMapper.selectByCiHashAndBrokerName(riaAccountDTO).isPresent()) {
-            throw new MydataRiaAccountException("이미 등록된 RIA 계좌입니다.");
+        MydataRiaAccountDTO existingAccount = mydataRiaAccountMapper.selectByCiHashAndBrokerName(riaAccountDTO).orElse(null);
+        if (existingAccount != null) {
+            return new RiaAccountCreateResult(MydataRiaAccountResponseDTO.of(existingAccount), false);
         }
 
-        mydataRiaAccountMapper.insertAccount(riaAccountDTO);
+        try {
+            mydataRiaAccountMapper.insertAccount(riaAccountDTO);
+        } catch (DuplicateKeyException e) {
+            MydataRiaAccountDTO concurrentAccount = mydataRiaAccountMapper.selectByCiHashAndBrokerName(riaAccountDTO).orElseThrow(() -> new MydataRiaAccountException("중복 생성 계좌 재조회 실패"));
+            return new RiaAccountCreateResult(MydataRiaAccountResponseDTO.of(concurrentAccount), false);
+        }
 
-        return MydataRiaAccountResponseDTO.of(mydataRiaAccountMapper.selectByCiHashAndBrokerName(riaAccountDTO).orElseThrow(()->new MydataRiaAccountException("재조회 실패")));
+        MydataRiaAccountDTO createdAccount = mydataRiaAccountMapper.selectByCiHashAndBrokerName(riaAccountDTO).orElseThrow(() -> new MydataRiaAccountException("재조회 실패"));
+        return new RiaAccountCreateResult(MydataRiaAccountResponseDTO.of(createdAccount), true);
     }
 
     @Override
