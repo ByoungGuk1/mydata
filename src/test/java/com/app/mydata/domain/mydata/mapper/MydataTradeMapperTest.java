@@ -162,6 +162,22 @@ class MydataTradeMapperTest {
         assertThat(result.get(0).getFundCode()).isEqualTo("KR5201234567");
     }
 
+    @Test
+    @DisplayName("FOREIGN_STOCK/ETF/ETN 타입 거래는 ticker가 저장/조회된다")
+    void selectByCiHashAndPeriodReturnsTickerWhenStockTypeIsNotFund() {
+        insertTrade("ci-1", LocalDate.of(2026, 3, 5), StockType.FOREIGN_STOCK, null, "AAPL");
+
+        MydataTradeRequestDTO request = MydataTradeRequestDTO.builder()
+                .ciHash("ci-1")
+                .build();
+
+        List<MydataTradeDTO> result = mydataTradeMapper.selectByCiHashAndPeriod(request);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getStockType()).isEqualTo(StockType.FOREIGN_STOCK);
+        assertThat(result.get(0).getTicker()).isEqualTo("AAPL");
+    }
+
     private void resetSchema() throws SQLException {
         try (Connection connection = dataSource.getConnection();
              Statement statement = connection.createStatement()) {
@@ -174,6 +190,7 @@ class MydataTradeMapperTest {
                         trade_type VARCHAR(20) NOT NULL,
                         stock_type VARCHAR(20) NOT NULL,
                         fund_code VARCHAR(12) NULL,
+                        ticker VARCHAR(20) NULL,
                         qty DECIMAL(15, 2) NOT NULL,
                         trade_date DATE NOT NULL,
                         amount DECIMAL(15, 2) NOT NULL
@@ -183,16 +200,21 @@ class MydataTradeMapperTest {
     }
 
     private void insertTrade(String ciHash, LocalDate tradeDate) {
-        insertTrade(ciHash, tradeDate, StockType.FOREIGN_STOCK, null);
+        insertTrade(ciHash, tradeDate, StockType.FOREIGN_STOCK, null, "AAPL");
     }
 
     private void insertTrade(String ciHash, LocalDate tradeDate, StockType stockType, String fundCode) {
+        insertTrade(ciHash, tradeDate, stockType, fundCode, null);
+    }
+
+    private void insertTrade(String ciHash, LocalDate tradeDate, StockType stockType, String fundCode, String ticker) {
         MydataTradeDTO tradeDTO = MydataTradeDTO.builder()
                 .ciHash(ciHash)
                 .brokerName("증권사A")
                 .tradeType(TradeType.BUY)
                 .stockType(stockType)
                 .fundCode(fundCode)
+                .ticker(ticker)
                 .qty(BigDecimal.TEN)
                 .tradeDate(tradeDate)
                 .amount(BigDecimal.valueOf(1_000_000))

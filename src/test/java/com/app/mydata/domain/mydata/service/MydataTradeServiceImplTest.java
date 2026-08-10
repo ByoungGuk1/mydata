@@ -111,6 +111,34 @@ class MydataTradeServiceImplTest {
     }
 
     @Test
+    void getTradesByCiHashPropagatesTickerForNonFundTrades() {
+        String ciHash = "test-ci-hash";
+        MydataTradeRequestDTO request = MydataTradeRequestDTO.builder()
+                .ciHash(ciHash)
+                .build();
+
+        when(mydataKeyMapper.existsByCiHash(ciHash)).thenReturn(1);
+
+        MydataTradeDTO dto = MydataTradeDTO.builder()
+                .tradeId(4L)
+                .ciHash(ciHash)
+                .brokerName("증권사A")
+                .tradeType(TradeType.BUY)
+                .stockType(StockType.FOREIGN_STOCK)
+                .ticker("AAPL")
+                .qty(BigDecimal.TEN)
+                .tradeDate(LocalDate.of(2026, 3, 5))
+                .amount(BigDecimal.valueOf(1_000_000))
+                .build();
+        when(mydataTradeMapper.selectByCiHashAndPeriod(request)).thenReturn(List.of(dto));
+
+        List<MydataTradeResponseDTO> result = mydataTradeService.getTradesByCiHash(request);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getTicker()).isEqualTo("AAPL");
+    }
+
+    @Test
     void getTradesByCiHashReturnsNullFundCodeForNonFundTrades() {
         String ciHash = "test-ci-hash";
         MydataTradeRequestDTO request = MydataTradeRequestDTO.builder()

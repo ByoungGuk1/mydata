@@ -59,6 +59,7 @@ CREATE TABLE mydata_trade (
                               trade_type  VARCHAR(15)   NOT NULL,
                               stock_type  VARCHAR(15)   NOT NULL,
                               fund_code   VARCHAR(12)   NULL,
+                              ticker      VARCHAR(20)   NULL,
                               qty         DECIMAL(15,2) NOT NULL,
                               trade_date  DATE          NOT NULL,
                               amount      DECIMAL(15,2) NOT NULL,
@@ -67,13 +68,15 @@ CREATE TABLE mydata_trade (
                               CONSTRAINT chk_mydata_trade_stock_type CHECK (stock_type IN ('FOREIGN_STOCK','ETF','ETN','FUND')),
                               CONSTRAINT fk_mydata_trade__key        FOREIGN KEY (ci_hash) REFERENCES mydata_key (ci_hash),
                               CONSTRAINT fk_mydata_trade__fund       FOREIGN KEY (fund_code) REFERENCES mydata_fund (fund_code),
-                              CONSTRAINT chk_mydata_trade_fund_code  CHECK ((stock_type = 'FUND' AND fund_code IS NOT NULL) OR (stock_type <> 'FUND' AND fund_code IS NULL))
+                              CONSTRAINT chk_mydata_trade_fund_code  CHECK ((stock_type = 'FUND' AND fund_code IS NOT NULL) OR (stock_type <> 'FUND' AND fund_code IS NULL)),
+                              CONSTRAINT chk_mydata_trade_ticker     CHECK ((stock_type <> 'FUND' AND ticker IS NOT NULL) OR (stock_type = 'FUND' AND ticker IS NULL))
 );
 COMMENT ON TABLE  mydata_trade             IS '전 금융기관 매매';
 COMMENT ON COLUMN mydata_trade.broker_name IS '증권사/금융기관';
 COMMENT ON COLUMN mydata_trade.trade_type  IS 'BUY/SELL/INHERITANCE/GIFT';
 COMMENT ON COLUMN mydata_trade.stock_type  IS 'FOREIGN_STOCK/ETF/ETN/FUND';
 COMMENT ON COLUMN mydata_trade.fund_code   IS '펀드표준코드(stock_type=FUND인 경우만, mydata_fund 참조)';
+COMMENT ON COLUMN mydata_trade.ticker      IS '종목 티커(stock_type이 FOREIGN_STOCK/ETF/ETN인 경우만)';
 COMMENT ON COLUMN mydata_trade.qty         IS '수량';
 COMMENT ON COLUMN mydata_trade.trade_date  IS '결제일 기준';
 COMMENT ON COLUMN mydata_trade.amount      IS '금액';
