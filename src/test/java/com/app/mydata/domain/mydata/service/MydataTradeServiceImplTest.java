@@ -82,6 +82,63 @@ class MydataTradeServiceImplTest {
     }
 
     @Test
+    void getTradesByCiHashPropagatesFundCodeForFundTrades() {
+        String ciHash = "test-ci-hash";
+        MydataTradeRequestDTO request = MydataTradeRequestDTO.builder()
+                .ciHash(ciHash)
+                .build();
+
+        when(mydataKeyMapper.existsByCiHash(ciHash)).thenReturn(1);
+
+        MydataTradeDTO dto = MydataTradeDTO.builder()
+                .tradeId(2L)
+                .ciHash(ciHash)
+                .brokerName("증권사A")
+                .tradeType(TradeType.BUY)
+                .stockType(StockType.FUND)
+                .fundCode("448630")
+                .qty(BigDecimal.ONE)
+                .tradeDate(LocalDate.of(2026, 3, 10))
+                .amount(BigDecimal.valueOf(500_000))
+                .build();
+        when(mydataTradeMapper.selectByCiHashAndPeriod(request)).thenReturn(List.of(dto));
+
+        List<MydataTradeResponseDTO> result = mydataTradeService.getTradesByCiHash(request);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getStockType()).isEqualTo(StockType.FUND);
+        assertThat(result.get(0).getFundCode()).isEqualTo("448630");
+    }
+
+    @Test
+    void getTradesByCiHashReturnsNullFundCodeForNonFundTrades() {
+        String ciHash = "test-ci-hash";
+        MydataTradeRequestDTO request = MydataTradeRequestDTO.builder()
+                .ciHash(ciHash)
+                .build();
+
+        when(mydataKeyMapper.existsByCiHash(ciHash)).thenReturn(1);
+
+        MydataTradeDTO dto = MydataTradeDTO.builder()
+                .tradeId(3L)
+                .ciHash(ciHash)
+                .brokerName("증권사A")
+                .tradeType(TradeType.BUY)
+                .stockType(StockType.FOREIGN_STOCK)
+                .fundCode(null)
+                .qty(BigDecimal.TEN)
+                .tradeDate(LocalDate.of(2026, 3, 5))
+                .amount(BigDecimal.valueOf(1_000_000))
+                .build();
+        when(mydataTradeMapper.selectByCiHashAndPeriod(request)).thenReturn(List.of(dto));
+
+        List<MydataTradeResponseDTO> result = mydataTradeService.getTradesByCiHash(request);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getFundCode()).isNull();
+    }
+
+    @Test
     void getTradesByCiHashReturnsEmptyListWhenNoTradesExist() {
         String ciHash = "test-ci-hash";
         MydataTradeRequestDTO request = MydataTradeRequestDTO.builder()

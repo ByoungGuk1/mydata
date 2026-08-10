@@ -2,6 +2,8 @@ package com.app.mydata.global.exception;
 
 import com.app.mydata.domain.member.exception.MemberException;
 import com.app.mydata.domain.member.exception.MemberNotFoundException;
+import com.app.mydata.domain.mydata.exception.MydataFundException;
+import com.app.mydata.domain.mydata.exception.MydataFundNotFoundException;
 import com.app.mydata.domain.mydata.exception.MydataRiaAccountException;
 import com.app.mydata.domain.mydata.exception.MydataRiaAccountNotFoundException;
 import com.app.mydata.domain.mydata.exception.MydataTradeException;
@@ -16,6 +18,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+  // 1. Member
   @ExceptionHandler(MemberException.class)
   public ResponseEntity<ApiResponseDTO<String>> handleException(MemberException e) {
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponseDTO.of(e.getMessage()));
@@ -25,6 +29,7 @@ public class GlobalExceptionHandler {
     return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponseDTO.of(e.getMessage()));
   }
 
+  // 2. MydataTrade
   @ExceptionHandler(MydataTradeException.class)
   public ResponseEntity<ApiResponseDTO<Void>> handleMydataTradeException(MydataTradeException e) {
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponseDTO.of(e.getMessage()));
@@ -34,6 +39,7 @@ public class GlobalExceptionHandler {
     return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponseDTO.of(e.getMessage()));
   }
 
+  // 3. MydataRiaAccount
   @ExceptionHandler(MydataRiaAccountException.class)
   public ResponseEntity<ApiResponseDTO<Void>> handleMydataRiaAccountException(MydataRiaAccountException e) {
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponseDTO.of(e.getMessage()));
@@ -43,6 +49,17 @@ public class GlobalExceptionHandler {
     return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponseDTO.of(e.getMessage()));
   }
 
+  // 4. MydataFund
+  @ExceptionHandler(MydataFundException.class)
+  public ResponseEntity<ApiResponseDTO<Void>> handleMydataFundException(MydataFundException e) {
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponseDTO.of(e.getMessage()));
+  }
+  @ExceptionHandler(MydataFundNotFoundException.class)
+  public ResponseEntity<ApiResponseDTO<Void>> handleMydataFundNotFound(MydataFundNotFoundException e) {
+    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponseDTO.of(e.getMessage()));
+  }
+
+  // 5. Validation
   @ExceptionHandler(BindException.class)
   public ResponseEntity<ApiResponseDTO<Void>> handleBindException(BindException e) {
     String message = e.getBindingResult().getFieldErrors().stream()

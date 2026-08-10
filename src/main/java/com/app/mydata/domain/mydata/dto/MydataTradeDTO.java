@@ -10,6 +10,7 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @Getter @Setter @ToString @Builder
 public class MydataTradeDTO {
+
     private Long tradeId;
     private String ciHash;
     private String brokerName;
@@ -18,4 +19,5 @@ public class MydataTradeDTO {
     private BigDecimal qty;
     private LocalDate tradeDate;
     private BigDecimal amount;
+    private String fundCode;
 }
