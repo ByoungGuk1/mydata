@@ -2,6 +2,7 @@ package com.app.mydata.domain.mydata.service;
 
 import com.app.mydata.domain.mydata.dto.MydataRiaAccountDTO;
 import com.app.mydata.domain.mydata.dto.request.MydataRiaAccountRequestDTO;
+import com.app.mydata.domain.mydata.dto.request.RiaAccountLimitUpdateRequestDTO;
 import com.app.mydata.domain.mydata.dto.request.RiaAccountRequestDTO;
 import com.app.mydata.domain.mydata.dto.response.MydataRiaAccountResponseDTO;
 import com.app.mydata.domain.mydata.exception.MydataRiaAccountException;
@@ -57,8 +58,8 @@ public class MydataRiaAccountServiceImpl implements MydataRiaAccountService {
     }
 
     @Override
-    public MydataRiaAccountResponseDTO updateRiaAccountLimit(RiaAccountRequestDTO riaAccountRequestDTO) {
-        MydataRiaAccountDTO riaAccountDTO = riaAccountRequestDTO.toDTO();
+    public MydataRiaAccountResponseDTO updateRiaAccountLimit(RiaAccountLimitUpdateRequestDTO request) {
+        MydataRiaAccountDTO riaAccountDTO = request.toDTO();
         if (mydataKeyMapper.existsByCiHash(riaAccountDTO.getCiHash()) == 0) {
             throw new MydataRiaAccountException("등록되지 않은 사용자 입니다.");
         }

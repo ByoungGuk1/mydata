@@ -1,6 +1,7 @@
 package com.app.mydata.domain.mydata.api;
 
 import com.app.mydata.domain.mydata.dto.request.MydataRiaAccountRequestDTO;
+import com.app.mydata.domain.mydata.dto.request.RiaAccountLimitUpdateRequestDTO;
 import com.app.mydata.domain.mydata.dto.request.RiaAccountRequestDTO;
 import com.app.mydata.domain.mydata.dto.response.MydataRiaAccountResponseDTO;
 import com.app.mydata.domain.mydata.exception.MydataRiaAccountException;
@@ -177,11 +178,10 @@ class MydataRiaAccountApiTest {
                 .build();
         when(mydataRiaAccountService.updateRiaAccountLimit(any())).thenReturn(response);
 
-        RiaAccountRequestDTO request = RiaAccountRequestDTO.builder()
+        RiaAccountLimitUpdateRequestDTO request = RiaAccountLimitUpdateRequestDTO.builder()
                 .ciHash("test-ci-hash")
                 .brokerName("증권사A")
                 .riaLimit(BigDecimal.valueOf(40_000_000))
-                .riaCumulativeSell(BigDecimal.valueOf(10_000_000))
                 .build();
 
         mockMvc.perform(put("/api/mydata/ria-accounts/limit-update")

@@ -3,6 +3,7 @@ package com.app.mydata.domain.mydata.service;
 
 import com.app.mydata.domain.mydata.dto.MydataRiaAccountDTO;
 import com.app.mydata.domain.mydata.dto.request.MydataRiaAccountRequestDTO;
+import com.app.mydata.domain.mydata.dto.request.RiaAccountLimitUpdateRequestDTO;
 import com.app.mydata.domain.mydata.dto.request.RiaAccountRequestDTO;
 import com.app.mydata.domain.mydata.dto.response.MydataRiaAccountResponseDTO;
 import com.app.mydata.domain.mydata.exception.MydataRiaAccountException;
@@ -125,11 +126,10 @@ class MydataRiaAccountServiceImplTest {
 
     @Test
     void updateRiaAccountLimitUpdatesOnlyLimitOfExistingAccount() {
-        RiaAccountRequestDTO request = RiaAccountRequestDTO.builder()
+        RiaAccountLimitUpdateRequestDTO request = RiaAccountLimitUpdateRequestDTO.builder()
                 .ciHash("test-ci-hash")
                 .brokerName("증권사A")
                 .riaLimit(BigDecimal.valueOf(40_000_000))
-                .riaCumulativeSell(BigDecimal.valueOf(10_000_000))
                 .build();
         MydataRiaAccountDTO existingAccount = MydataRiaAccountDTO.builder()
                 .mydataAccountId(7L)
@@ -156,6 +156,7 @@ class MydataRiaAccountServiceImplTest {
         verify(mydataRiaAccountMapper).updateAccount(captor.capture());
         assertThat(captor.getValue().getMydataAccountId()).isEqualTo(7L);
         assertThat(captor.getValue().getRiaLimit()).isEqualByComparingTo(BigDecimal.valueOf(40_000_000));
+        assertThat(captor.getValue().getRiaCumulativeSell()).isNull();
         assertThat(result.getMydataAccountId()).isEqualTo(7L);
         assertThat(result.getRiaLimit()).isEqualByComparingTo(BigDecimal.valueOf(40_000_000));
         assertThat(result.getRiaCumulativeSell()).isEqualByComparingTo(BigDecimal.ZERO);
@@ -197,7 +198,7 @@ class MydataRiaAccountServiceImplTest {
 
     @Test
     void updateRiaAccountLimitThrowsNotFoundWhenAccountDoesNotExist() {
-        RiaAccountRequestDTO request = RiaAccountRequestDTO.builder()
+        RiaAccountLimitUpdateRequestDTO request = RiaAccountLimitUpdateRequestDTO.builder()
                 .ciHash("test-ci-hash")
                 .brokerName("증권사A")
                 .riaLimit(BigDecimal.valueOf(30_000_000))
