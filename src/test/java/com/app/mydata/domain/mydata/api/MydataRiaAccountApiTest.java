@@ -4,7 +4,6 @@ import com.app.mydata.domain.mydata.dto.request.MydataRiaAccountRequestDTO;
 import com.app.mydata.domain.mydata.dto.request.RiaAccountLimitUpdateRequestDTO;
 import com.app.mydata.domain.mydata.dto.request.RiaAccountRequestDTO;
 import com.app.mydata.domain.mydata.dto.response.MydataRiaAccountResponseDTO;
-import com.app.mydata.domain.mydata.dto.response.RiaAccountCreateResult;
 import com.app.mydata.domain.mydata.exception.MydataRiaAccountException;
 import com.app.mydata.domain.mydata.service.MydataRiaAccountService;
 import com.app.mydata.global.exception.GlobalExceptionHandler;
@@ -125,34 +124,7 @@ class MydataRiaAccountApiTest {
     }
 
     @Test
-    void createRiaAccountAcceptsNullCumulativeSell() throws Exception {
-        MydataRiaAccountResponseDTO response = MydataRiaAccountResponseDTO.builder()
-                .ciHash("test-ci-hash")
-                .brokerName("증권사A")
-                .riaLimit(BigDecimal.valueOf(30_000_000))
-                .riaCumulativeSell(BigDecimal.ZERO)
-                .build();
-        when(mydataRiaAccountService.createRiaAccount(any())).thenReturn(new RiaAccountCreateResult(response, true));
-
-        RiaAccountRequestDTO request = RiaAccountRequestDTO.builder()
-                .ciHash("test-ci-hash")
-                .brokerName("증권사A")
-                .riaLimit(BigDecimal.valueOf(30_000_000))
-                .riaCumulativeSell(null)
-                .build();
-
-        mockMvc.perform(post("/api/mydata/ria-accounts/save")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.message").value("myData RIA 계좌 등록 성공"))
-                .andExpect(jsonPath("$.data.riaCumulativeSell").value(0));
-
-        verify(mydataRiaAccountService).createRiaAccount(any());
-    }
-
-    @Test
-    void createRiaAccountReturnsOkWhenAccountAlreadyExists() throws Exception {
+    void syncRiaAccountReturnsOkForExistingAccount() throws Exception {
         MydataRiaAccountResponseDTO response = MydataRiaAccountResponseDTO.builder()
                 .mydataAccountId(1L)
                 .ciHash("test-ci-hash")
@@ -160,7 +132,7 @@ class MydataRiaAccountApiTest {
                 .riaLimit(BigDecimal.valueOf(30_000_000))
                 .riaCumulativeSell(BigDecimal.ZERO)
                 .build();
-        when(mydataRiaAccountService.createRiaAccount(any())).thenReturn(new RiaAccountCreateResult(response, false));
+        when(mydataRiaAccountService.syncRiaAccount(any())).thenReturn(response);
 
         RiaAccountRequestDTO request = RiaAccountRequestDTO.builder()
                 .ciHash("test-ci-hash")
@@ -176,20 +148,21 @@ class MydataRiaAccountApiTest {
     }
 
     @Test
-    void createRiaAccountRejectsNegativeCumulativeSell() throws Exception {
-        RiaAccountRequestDTO request = RiaAccountRequestDTO.builder()
-                .ciHash("test-ci-hash")
-                .brokerName("증권사A")
-                .riaLimit(BigDecimal.valueOf(30_000_000))
-                .riaCumulativeSell(BigDecimal.valueOf(-1))
-                .build();
+    void syncRiaAccountRejectsInvalidRiaLimit() throws Exception {
+        for (BigDecimal riaLimit : List.of(BigDecimal.ZERO, BigDecimal.valueOf(50_000_001), BigDecimal.valueOf(1.5))) {
+            RiaAccountRequestDTO request = RiaAccountRequestDTO.builder()
+                    .ciHash("test-ci-hash")
+                    .brokerName("증권사A")
+                    .riaLimit(riaLimit)
+                    .build();
 
-        mockMvc.perform(post("/api/mydata/ria-accounts/save")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest());
+            mockMvc.perform(post("/api/mydata/ria-accounts/save")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest());
+        }
 
-        verify(mydataRiaAccountService, never()).createRiaAccount(any());
+        verify(mydataRiaAccountService, never()).syncRiaAccount(any());
     }
 
     @Test

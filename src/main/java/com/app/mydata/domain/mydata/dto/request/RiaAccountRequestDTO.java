@@ -3,8 +3,9 @@ package com.app.mydata.domain.mydata.dto.request;
 import com.app.mydata.domain.mydata.dto.MydataRiaAccountDTO;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
-import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
 import lombok.*;
 
 import java.math.BigDecimal;
@@ -21,18 +22,17 @@ public class RiaAccountRequestDTO {
   private String ciHash;
   @NotBlank
   private String brokerName;
-  @Positive
   @NotNull
+  @DecimalMin(value = "1", inclusive = true)
+  @DecimalMax(value = "50000000", inclusive = true)
+  @Digits(integer = 8, fraction = 0)
   private BigDecimal riaLimit;
-  @PositiveOrZero
-  private BigDecimal riaCumulativeSell;
-
   public MydataRiaAccountDTO toDTO(){
     return MydataRiaAccountDTO.builder()
         .ciHash(this.getCiHash())
         .brokerName(this.getBrokerName())
         .riaLimit(this.getRiaLimit())
-        .riaCumulativeSell(this.getRiaCumulativeSell() == null ? BigDecimal.ZERO : this.getRiaCumulativeSell())
+        .riaCumulativeSell(BigDecimal.ZERO)
         .build();
   }
 }
