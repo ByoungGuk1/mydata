@@ -13,6 +13,8 @@ import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindException;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -49,6 +51,11 @@ public class GlobalExceptionHandler {
     return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponseDTO.of(e.getMessage()));
   }
 
+  @ExceptionHandler(MethodArgumentNotValidException.class)
+  public ResponseEntity<ApiResponseDTO<Void>> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
+    return validationError(e.getBindingResult());
+  }
+
   // 4. MydataFund
   @ExceptionHandler(MydataFundException.class)
   public ResponseEntity<ApiResponseDTO<Void>> handleMydataFundException(MydataFundException e) {
@@ -62,7 +69,11 @@ public class GlobalExceptionHandler {
   // 5. Validation
   @ExceptionHandler(BindException.class)
   public ResponseEntity<ApiResponseDTO<Void>> handleBindException(BindException e) {
-    String message = e.getBindingResult().getFieldErrors().stream()
+    return validationError(e.getBindingResult());
+  }
+
+  private ResponseEntity<ApiResponseDTO<Void>> validationError(BindingResult bindingResult) {
+    String message = bindingResult.getFieldErrors().stream()
             .findFirst()
             .map(DefaultMessageSourceResolvable::getDefaultMessage)
             .orElse("요청값이 올바르지 않습니다.");

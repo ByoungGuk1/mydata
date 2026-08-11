@@ -21,6 +21,11 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -118,6 +123,57 @@ class MydataRiaAccountMapperTest {
     }
 
     @Test
+    @DisplayName("동일 계좌를 upsert하면 최신 한도만 갱신하고 누적매도금액은 보존한다")
+    void upsertAccountUpdatesOnlyLimitForExistingAccount() {
+        MydataRiaAccountDTO original = MydataRiaAccountDTO.builder()
+                .ciHash("ci-1")
+                .brokerName("증권사A")
+                .riaLimit(BigDecimal.valueOf(30_000_000))
+                .riaCumulativeSell(BigDecimal.valueOf(5_000_000))
+                .build();
+        mydataRiaAccountMapper.insertAccount(original);
+
+        MydataRiaAccountDTO update = MydataRiaAccountDTO.builder()
+                .ciHash("ci-1")
+                .brokerName("증권사A")
+                .riaLimit(BigDecimal.valueOf(40_000_000))
+                .riaCumulativeSell(BigDecimal.ZERO)
+                .build();
+        mydataRiaAccountMapper.upsertAccount(update);
+
+        MydataRiaAccountDTO result = mydataRiaAccountMapper.selectByCiHash("ci-1").get(0);
+        assertThat(result.getRiaLimit()).isEqualByComparingTo(BigDecimal.valueOf(40_000_000));
+        assertThat(result.getRiaCumulativeSell()).isEqualByComparingTo(BigDecimal.valueOf(5_000_000));
+    }
+
+    @Test
+    @DisplayName("동시에 같은 계좌를 upsert해도 한 행만 저장되고 누적매도금액은 0으로 생성된다")
+    void concurrentUpsertCreatesSingleAccount() throws Exception {
+        MydataRiaAccountDTO firstRequest = account("ci-1", "증권사A", 30_000_000);
+        MydataRiaAccountDTO secondRequest = account("ci-1", "증권사A", 40_000_000);
+        CountDownLatch ready = new CountDownLatch(2);
+        CountDownLatch start = new CountDownLatch(1);
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+
+        try {
+            Future<?> first = executor.submit(() -> upsertAfterStart(firstRequest, ready, start));
+            Future<?> second = executor.submit(() -> upsertAfterStart(secondRequest, ready, start));
+            assertThat(ready.await(5, TimeUnit.SECONDS)).isTrue();
+            start.countDown();
+            first.get(5, TimeUnit.SECONDS);
+            second.get(5, TimeUnit.SECONDS);
+        } finally {
+            executor.shutdownNow();
+        }
+
+        List<MydataRiaAccountDTO> result = mydataRiaAccountMapper.selectByCiHash("ci-1");
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getRiaLimit().intValueExact())
+                .isIn(30_000_000, 40_000_000);
+        assertThat(result.get(0).getRiaCumulativeSell()).isEqualByComparingTo(BigDecimal.ZERO);
+    }
+
+    @Test
     @DisplayName("ciHash와 증권사명이 모두 일치하는 계좌를 조회한다")
     void selectByCiHashAndBrokerNameReturnsMatchingAccount() {
         insertAccount("ci-1", "증권사A");
@@ -136,8 +192,8 @@ class MydataRiaAccountMapperTest {
     }
 
     @Test
-    @DisplayName("계좌 ID, ciHash, 증권사명이 일치하면 한도와 누적매도금액을 수정한다")
-    void updateAccountUpdatesMatchingAccount() {
+    @DisplayName("계좌 ID, ciHash, 증권사명이 일치하면 한도만 수정한다")
+    void updateAccountUpdatesOnlyLimitOfMatchingAccount() {
         insertAccount("ci-1", "증권사A");
         MydataRiaAccountDTO savedAccount = mydataRiaAccountMapper.selectByCiHash("ci-1").get(0);
         savedAccount.setRiaLimit(BigDecimal.valueOf(40_000_000));
@@ -147,7 +203,7 @@ class MydataRiaAccountMapperTest {
 
         MydataRiaAccountDTO result = mydataRiaAccountMapper.selectByCiHash("ci-1").get(0);
         assertThat(result.getRiaLimit()).isEqualByComparingTo(BigDecimal.valueOf(40_000_000));
-        assertThat(result.getRiaCumulativeSell()).isEqualByComparingTo(BigDecimal.valueOf(10_000_000));
+        assertThat(result.getRiaCumulativeSell()).isEqualByComparingTo(BigDecimal.ZERO);
     }
 
     private void resetSchema() throws SQLException {
@@ -160,7 +216,8 @@ class MydataRiaAccountMapperTest {
                         ci_hash VARCHAR(64) NOT NULL,
                         broker_name VARCHAR(50) NOT NULL,
                         ria_limit DECIMAL(15, 2) NOT NULL,
-                        ria_cumulative_sell DECIMAL(15, 2) NOT NULL
+                        ria_cumulative_sell DECIMAL(15, 2) NOT NULL,
+                        UNIQUE (ci_hash, broker_name)
                     )
                     """);
         }
@@ -174,5 +231,32 @@ class MydataRiaAccountMapperTest {
                 .riaCumulativeSell(BigDecimal.ZERO)
                 .build();
         mydataRiaAccountMapper.insertAccount(accountDTO);
+    }
+
+    private void upsertAfterStart(
+            MydataRiaAccountDTO accountDTO,
+            CountDownLatch ready,
+            CountDownLatch start) {
+        ready.countDown();
+        try {
+            if (!start.await(5, TimeUnit.SECONDS)) {
+                throw new IllegalStateException("동시 upsert 시작 대기 시간 초과");
+            }
+            try (SqlSession concurrentSession = sqlSessionFactory.openSession(true)) {
+                concurrentSession.getMapper(MydataRiaAccountMapper.class).upsertAccount(accountDTO);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("동시 upsert가 중단되었습니다.", e);
+        }
+    }
+
+    private MydataRiaAccountDTO account(String ciHash, String brokerName, long riaLimit) {
+        return MydataRiaAccountDTO.builder()
+                .ciHash(ciHash)
+                .brokerName(brokerName)
+                .riaLimit(BigDecimal.valueOf(riaLimit))
+                .riaCumulativeSell(BigDecimal.ZERO)
+                .build();
     }
 }

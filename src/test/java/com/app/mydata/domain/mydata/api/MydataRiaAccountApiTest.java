@@ -1,6 +1,7 @@
 package com.app.mydata.domain.mydata.api;
 
 import com.app.mydata.domain.mydata.dto.request.MydataRiaAccountRequestDTO;
+import com.app.mydata.domain.mydata.dto.request.RiaAccountLimitUpdateRequestDTO;
 import com.app.mydata.domain.mydata.dto.request.RiaAccountRequestDTO;
 import com.app.mydata.domain.mydata.dto.response.MydataRiaAccountResponseDTO;
 import com.app.mydata.domain.mydata.exception.MydataRiaAccountException;
@@ -22,6 +23,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -122,46 +124,71 @@ class MydataRiaAccountApiTest {
     }
 
     @Test
-    void saveRiaAccountAcceptsNullCumulativeSell() throws Exception {
+    void syncRiaAccountReturnsOkForExistingAccount() throws Exception {
         MydataRiaAccountResponseDTO response = MydataRiaAccountResponseDTO.builder()
+                .mydataAccountId(1L)
                 .ciHash("test-ci-hash")
                 .brokerName("증권사A")
                 .riaLimit(BigDecimal.valueOf(30_000_000))
                 .riaCumulativeSell(BigDecimal.ZERO)
                 .build();
-        when(mydataRiaAccountService.saveRiaAccount(any())).thenReturn(response);
+        when(mydataRiaAccountService.syncRiaAccount(any())).thenReturn(response);
 
         RiaAccountRequestDTO request = RiaAccountRequestDTO.builder()
                 .ciHash("test-ci-hash")
                 .brokerName("증권사A")
                 .riaLimit(BigDecimal.valueOf(30_000_000))
-                .riaCumulativeSell(null)
                 .build();
 
         mockMvc.perform(post("/api/mydata/ria-accounts/save")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.message").value("myData RIA 계좌 등록 성공"))
-                .andExpect(jsonPath("$.data.riaCumulativeSell").value(0));
-
-        verify(mydataRiaAccountService).saveRiaAccount(any());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.mydataAccountId").value(1));
     }
 
     @Test
-    void saveRiaAccountRejectsNegativeCumulativeSell() throws Exception {
-        RiaAccountRequestDTO request = RiaAccountRequestDTO.builder()
+    void syncRiaAccountRejectsInvalidRiaLimit() throws Exception {
+        for (BigDecimal riaLimit : List.of(BigDecimal.ZERO, BigDecimal.valueOf(50_000_001), BigDecimal.valueOf(1.5))) {
+            RiaAccountRequestDTO request = RiaAccountRequestDTO.builder()
+                    .ciHash("test-ci-hash")
+                    .brokerName("증권사A")
+                    .riaLimit(riaLimit)
+                    .build();
+
+            mockMvc.perform(post("/api/mydata/ria-accounts/save")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest());
+        }
+
+        verify(mydataRiaAccountService, never()).syncRiaAccount(any());
+    }
+
+    @Test
+    void updateRiaAccountLimitUsesPutLimitUpdateEndpoint() throws Exception {
+        MydataRiaAccountResponseDTO response = MydataRiaAccountResponseDTO.builder()
+                .mydataAccountId(1L)
                 .ciHash("test-ci-hash")
                 .brokerName("증권사A")
-                .riaLimit(BigDecimal.valueOf(30_000_000))
-                .riaCumulativeSell(BigDecimal.valueOf(-1))
+                .riaLimit(BigDecimal.valueOf(40_000_000))
+                .riaCumulativeSell(BigDecimal.ZERO)
+                .build();
+        when(mydataRiaAccountService.updateRiaAccountLimit(any())).thenReturn(response);
+
+        RiaAccountLimitUpdateRequestDTO request = RiaAccountLimitUpdateRequestDTO.builder()
+                .ciHash("test-ci-hash")
+                .brokerName("증권사A")
+                .riaLimit(BigDecimal.valueOf(40_000_000))
                 .build();
 
-        mockMvc.perform(post("/api/mydata/ria-accounts/save")
+        mockMvc.perform(put("/api/mydata/ria-accounts/limit-update")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("myData RIA 계좌 한도 변경 성공"))
+                .andExpect(jsonPath("$.data.riaLimit").value(40_000_000));
 
-        verify(mydataRiaAccountService, never()).saveRiaAccount(any());
+        verify(mydataRiaAccountService).updateRiaAccountLimit(any());
     }
 }
