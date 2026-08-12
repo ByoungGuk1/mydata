@@ -37,14 +37,4 @@
         WHERE ci_hash = #{ciHash} AND broker_name = #{brokerName}
     </select>
 
-    <update id="updateAccount" parameterType="MydataRiaAccountDTO">
-        update mydata_ria_account
-            set ria_limit = #{riaLimit}
-        where mydata_account_id = #{mydataAccountId}
-            AND
-                ci_hash = #{ciHash}
-            AND
-                broker_name = #{brokerName}
-    </update>
-
 </mapper>

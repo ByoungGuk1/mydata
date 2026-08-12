@@ -32,7 +32,6 @@ public class RiaAccountRequestDTO {
         .ciHash(this.getCiHash())
         .brokerName(this.getBrokerName())
         .riaLimit(this.getRiaLimit())
-        .riaCumulativeSell(BigDecimal.ZERO)
         .build();
   }
 }

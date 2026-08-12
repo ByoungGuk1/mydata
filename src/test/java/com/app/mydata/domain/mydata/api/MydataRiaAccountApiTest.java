@@ -1,7 +1,6 @@
 package com.app.mydata.domain.mydata.api;
 
 import com.app.mydata.domain.mydata.dto.request.MydataRiaAccountRequestDTO;
-import com.app.mydata.domain.mydata.dto.request.RiaAccountLimitUpdateRequestDTO;
 import com.app.mydata.domain.mydata.dto.request.RiaAccountRequestDTO;
 import com.app.mydata.domain.mydata.dto.response.MydataRiaAccountResponseDTO;
 import com.app.mydata.domain.mydata.exception.MydataRiaAccountException;
@@ -23,7 +22,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -165,30 +163,4 @@ class MydataRiaAccountApiTest {
         verify(mydataRiaAccountService, never()).syncRiaAccount(any());
     }
 
-    @Test
-    void updateRiaAccountLimitUsesPutLimitUpdateEndpoint() throws Exception {
-        MydataRiaAccountResponseDTO response = MydataRiaAccountResponseDTO.builder()
-                .mydataAccountId(1L)
-                .ciHash("test-ci-hash")
-                .brokerName("증권사A")
-                .riaLimit(BigDecimal.valueOf(40_000_000))
-                .riaCumulativeSell(BigDecimal.ZERO)
-                .build();
-        when(mydataRiaAccountService.updateRiaAccountLimit(any())).thenReturn(response);
-
-        RiaAccountLimitUpdateRequestDTO request = RiaAccountLimitUpdateRequestDTO.builder()
-                .ciHash("test-ci-hash")
-                .brokerName("증권사A")
-                .riaLimit(BigDecimal.valueOf(40_000_000))
-                .build();
-
-        mockMvc.perform(put("/api/mydata/ria-accounts/limit-update")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").value("myData RIA 계좌 한도 변경 성공"))
-                .andExpect(jsonPath("$.data.riaLimit").value(40_000_000));
-
-        verify(mydataRiaAccountService).updateRiaAccountLimit(any());
-    }
 }
