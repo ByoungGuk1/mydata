@@ -40,19 +40,16 @@ public class MydataRiaAccountServiceImpl implements MydataRiaAccountService {
     }
 
     @Override
-    public MydataRiaAccountResponseDTO saveRiaAccount(RiaAccountRequestDTO riaAccountRequestDTO) {
+    public MydataRiaAccountResponseDTO syncRiaAccount(RiaAccountRequestDTO riaAccountRequestDTO) {
         MydataRiaAccountDTO riaAccountDTO = riaAccountRequestDTO.toDTO();
         if (mydataKeyMapper.existsByCiHash(riaAccountDTO.getCiHash()) == 0) {
             throw new MydataRiaAccountException("등록되지 않은 사용자 입니다.");
         }
 
-        mydataRiaAccountMapper.selectByCiHashAndBrokerName(riaAccountDTO).ifPresentOrElse((foundDTO)->{
-            riaAccountDTO.setMydataAccountId(foundDTO.getMydataAccountId());
-            mydataRiaAccountMapper.updateAccount(riaAccountDTO);
-        },()->{
-            mydataRiaAccountMapper.insertAccount(riaAccountDTO);
-        });
-
-        return MydataRiaAccountResponseDTO.of(mydataRiaAccountMapper.selectByCiHashAndBrokerName(riaAccountDTO).orElseThrow(()->new MydataRiaAccountException("재조회 실패")));
+        mydataRiaAccountMapper.upsertAccount(riaAccountDTO);
+        MydataRiaAccountDTO savedAccount = mydataRiaAccountMapper.selectByCiHashAndBrokerName(riaAccountDTO)
+                .orElseThrow(() -> new MydataRiaAccountException("재조회 실패"));
+        return MydataRiaAccountResponseDTO.of(savedAccount);
     }
+
 }

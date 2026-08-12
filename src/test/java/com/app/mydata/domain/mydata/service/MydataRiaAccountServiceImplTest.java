@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -94,12 +95,11 @@ class MydataRiaAccountServiceImplTest {
     }
 
     @Test
-    void saveRiaAccountConvertsNullCumulativeSellToZeroAndInsertsNewAccount() {
+    void syncRiaAccountPassesOnlySyncFieldsToUpsert() {
         RiaAccountRequestDTO request = RiaAccountRequestDTO.builder()
                 .ciHash("test-ci-hash")
                 .brokerName("증권사A")
                 .riaLimit(BigDecimal.valueOf(30_000_000))
-                .riaCumulativeSell(null)
                 .build();
         MydataRiaAccountDTO savedAccount = MydataRiaAccountDTO.builder()
                 .mydataAccountId(1L)
@@ -110,58 +110,74 @@ class MydataRiaAccountServiceImplTest {
                 .build();
         when(mydataKeyMapper.existsByCiHash("test-ci-hash")).thenReturn(1);
         when(mydataRiaAccountMapper.selectByCiHashAndBrokerName(org.mockito.ArgumentMatchers.any()))
-                .thenReturn(Optional.empty())
                 .thenReturn(Optional.of(savedAccount));
 
-        MydataRiaAccountResponseDTO result = mydataRiaAccountService.saveRiaAccount(request);
+        MydataRiaAccountResponseDTO result = mydataRiaAccountService.syncRiaAccount(request);
 
         ArgumentCaptor<MydataRiaAccountDTO> captor = ArgumentCaptor.forClass(MydataRiaAccountDTO.class);
-        verify(mydataRiaAccountMapper).insertAccount(captor.capture());
-        assertThat(captor.getValue().getRiaCumulativeSell()).isEqualByComparingTo(BigDecimal.ZERO);
+        verify(mydataRiaAccountMapper).upsertAccount(captor.capture());
+        assertThat(captor.getValue().getRiaCumulativeSell()).isNull();
         assertThat(result.getMydataAccountId()).isEqualTo(1L);
         assertThat(result.getRiaCumulativeSell()).isEqualByComparingTo(BigDecimal.ZERO);
     }
 
     @Test
-    void saveRiaAccountUpdatesExistingAccountWithExistingId() {
+    void syncRiaAccountUpdatesExistingAccountLimitAndPreservesCumulativeSell() {
         RiaAccountRequestDTO request = RiaAccountRequestDTO.builder()
                 .ciHash("test-ci-hash")
                 .brokerName("증권사A")
-                .riaLimit(BigDecimal.valueOf(40_000_000))
-                .riaCumulativeSell(BigDecimal.valueOf(10_000_000))
+                .riaLimit(BigDecimal.valueOf(30_000_000))
                 .build();
         MydataRiaAccountDTO existingAccount = MydataRiaAccountDTO.builder()
-                .mydataAccountId(7L)
+                .mydataAccountId(1L)
+                .ciHash("test-ci-hash")
+                .brokerName("증권사A")
+                .riaLimit(BigDecimal.valueOf(40_000_000))
+                .riaCumulativeSell(BigDecimal.valueOf(5_000_000))
+                .build();
+        when(mydataKeyMapper.existsByCiHash("test-ci-hash")).thenReturn(1);
+        when(mydataRiaAccountMapper.selectByCiHashAndBrokerName(org.mockito.ArgumentMatchers.any()))
+                .thenReturn(Optional.of(existingAccount));
+
+        MydataRiaAccountResponseDTO result = mydataRiaAccountService.syncRiaAccount(request);
+
+        ArgumentCaptor<MydataRiaAccountDTO> captor = ArgumentCaptor.forClass(MydataRiaAccountDTO.class);
+        verify(mydataRiaAccountMapper).upsertAccount(captor.capture());
+        assertThat(captor.getValue().getRiaLimit()).isEqualByComparingTo(BigDecimal.valueOf(30_000_000));
+        assertThat(captor.getValue().getRiaCumulativeSell()).isNull();
+        assertThat(result.getMydataAccountId()).isEqualTo(1L);
+        assertThat(result.getRiaLimit()).isEqualByComparingTo(BigDecimal.valueOf(40_000_000));
+        assertThat(result.getRiaCumulativeSell()).isEqualByComparingTo(BigDecimal.valueOf(5_000_000));
+        verify(mydataRiaAccountMapper, never()).insertAccount(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void syncRiaAccountReturnsLatestAccountAfterAtomicConcurrentUpsert() {
+        RiaAccountRequestDTO request = RiaAccountRequestDTO.builder()
+                .ciHash("test-ci-hash")
+                .brokerName("증권사A")
+                .riaLimit(BigDecimal.valueOf(30_000_000))
+                .build();
+        MydataRiaAccountDTO existingAccount = MydataRiaAccountDTO.builder()
+                .mydataAccountId(2L)
                 .ciHash("test-ci-hash")
                 .brokerName("증권사A")
                 .riaLimit(BigDecimal.valueOf(30_000_000))
                 .riaCumulativeSell(BigDecimal.ZERO)
                 .build();
-        MydataRiaAccountDTO updatedAccount = MydataRiaAccountDTO.builder()
-                .mydataAccountId(7L)
-                .ciHash("test-ci-hash")
-                .brokerName("증권사A")
-                .riaLimit(BigDecimal.valueOf(40_000_000))
-                .riaCumulativeSell(BigDecimal.valueOf(10_000_000))
-                .build();
         when(mydataKeyMapper.existsByCiHash("test-ci-hash")).thenReturn(1);
         when(mydataRiaAccountMapper.selectByCiHashAndBrokerName(org.mockito.ArgumentMatchers.any()))
-                .thenReturn(Optional.of(existingAccount))
-                .thenReturn(Optional.of(updatedAccount));
+                .thenReturn(Optional.of(existingAccount));
 
-        MydataRiaAccountResponseDTO result = mydataRiaAccountService.saveRiaAccount(request);
+        MydataRiaAccountResponseDTO result = mydataRiaAccountService.syncRiaAccount(request);
 
-        ArgumentCaptor<MydataRiaAccountDTO> captor = ArgumentCaptor.forClass(MydataRiaAccountDTO.class);
-        verify(mydataRiaAccountMapper).updateAccount(captor.capture());
-        assertThat(captor.getValue().getMydataAccountId()).isEqualTo(7L);
-        assertThat(captor.getValue().getRiaLimit()).isEqualByComparingTo(BigDecimal.valueOf(40_000_000));
-        assertThat(result.getMydataAccountId()).isEqualTo(7L);
-        assertThat(result.getRiaLimit()).isEqualByComparingTo(BigDecimal.valueOf(40_000_000));
-        assertThat(result.getRiaCumulativeSell()).isEqualByComparingTo(BigDecimal.valueOf(10_000_000));
+        assertThat(result.getMydataAccountId()).isEqualTo(2L);
+        verify(mydataRiaAccountMapper).upsertAccount(org.mockito.ArgumentMatchers.any());
+        verify(mydataRiaAccountMapper, never()).insertAccount(org.mockito.ArgumentMatchers.any());
     }
 
     @Test
-    void saveRiaAccountThrowsExceptionWhenCiHashIsUnregistered() {
+    void syncRiaAccountThrowsExceptionWhenCiHashIsUnregistered() {
         RiaAccountRequestDTO request = RiaAccountRequestDTO.builder()
                 .ciHash("unknown-ci-hash")
                 .brokerName("증권사A")
@@ -169,7 +185,7 @@ class MydataRiaAccountServiceImplTest {
                 .build();
         when(mydataKeyMapper.existsByCiHash("unknown-ci-hash")).thenReturn(0);
 
-        assertThatThrownBy(() -> mydataRiaAccountService.saveRiaAccount(request))
+        assertThatThrownBy(() -> mydataRiaAccountService.syncRiaAccount(request))
                 .isInstanceOf(MydataRiaAccountException.class)
                 .hasMessage("등록되지 않은 사용자 입니다.");
 
@@ -177,7 +193,7 @@ class MydataRiaAccountServiceImplTest {
     }
 
     @Test
-    void saveRiaAccountThrowsExceptionWhenReloadFails() {
+    void syncRiaAccountThrowsExceptionWhenReloadFails() {
         RiaAccountRequestDTO request = RiaAccountRequestDTO.builder()
                 .ciHash("test-ci-hash")
                 .brokerName("증권사A")
@@ -187,10 +203,11 @@ class MydataRiaAccountServiceImplTest {
         when(mydataRiaAccountMapper.selectByCiHashAndBrokerName(org.mockito.ArgumentMatchers.any()))
                 .thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> mydataRiaAccountService.saveRiaAccount(request))
+        assertThatThrownBy(() -> mydataRiaAccountService.syncRiaAccount(request))
                 .isInstanceOf(MydataRiaAccountException.class)
                 .hasMessage("재조회 실패");
 
-        verify(mydataRiaAccountMapper).insertAccount(org.mockito.ArgumentMatchers.any());
+        verify(mydataRiaAccountMapper).upsertAccount(org.mockito.ArgumentMatchers.any());
     }
+
 }
