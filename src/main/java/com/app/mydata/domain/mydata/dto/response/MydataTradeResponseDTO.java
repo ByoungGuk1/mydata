@@ -21,6 +21,7 @@ public class MydataTradeResponseDTO {
     private LocalDate tradeDate;
     private BigDecimal amount;
     private String fundCode;
+    private String ticker;
 
     public static MydataTradeResponseDTO of(MydataTradeDTO dto) {
         return MydataTradeResponseDTO.builder()
@@ -33,6 +34,7 @@ public class MydataTradeResponseDTO {
                 .tradeDate(dto.getTradeDate())
                 .amount(dto.getAmount())
                 .fundCode(dto.getFundCode())
+                .ticker(dto.getTicker())
                 .build();
     }
 }

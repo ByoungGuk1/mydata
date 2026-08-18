@@ -122,46 +122,45 @@ class MydataRiaAccountApiTest {
     }
 
     @Test
-    void saveRiaAccountAcceptsNullCumulativeSell() throws Exception {
+    void syncRiaAccountReturnsOkForExistingAccount() throws Exception {
         MydataRiaAccountResponseDTO response = MydataRiaAccountResponseDTO.builder()
+                .mydataAccountId(1L)
                 .ciHash("test-ci-hash")
                 .brokerName("증권사A")
                 .riaLimit(BigDecimal.valueOf(30_000_000))
                 .riaCumulativeSell(BigDecimal.ZERO)
                 .build();
-        when(mydataRiaAccountService.saveRiaAccount(any())).thenReturn(response);
+        when(mydataRiaAccountService.syncRiaAccount(any())).thenReturn(response);
 
         RiaAccountRequestDTO request = RiaAccountRequestDTO.builder()
                 .ciHash("test-ci-hash")
                 .brokerName("증권사A")
                 .riaLimit(BigDecimal.valueOf(30_000_000))
-                .riaCumulativeSell(null)
                 .build();
 
         mockMvc.perform(post("/api/mydata/ria-accounts/save")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.message").value("myData RIA 계좌 등록 성공"))
-                .andExpect(jsonPath("$.data.riaCumulativeSell").value(0));
-
-        verify(mydataRiaAccountService).saveRiaAccount(any());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.mydataAccountId").value(1));
     }
 
     @Test
-    void saveRiaAccountRejectsNegativeCumulativeSell() throws Exception {
-        RiaAccountRequestDTO request = RiaAccountRequestDTO.builder()
-                .ciHash("test-ci-hash")
-                .brokerName("증권사A")
-                .riaLimit(BigDecimal.valueOf(30_000_000))
-                .riaCumulativeSell(BigDecimal.valueOf(-1))
-                .build();
+    void syncRiaAccountRejectsInvalidRiaLimit() throws Exception {
+        for (BigDecimal riaLimit : List.of(BigDecimal.ZERO, BigDecimal.valueOf(50_000_001), BigDecimal.valueOf(1.5))) {
+            RiaAccountRequestDTO request = RiaAccountRequestDTO.builder()
+                    .ciHash("test-ci-hash")
+                    .brokerName("증권사A")
+                    .riaLimit(riaLimit)
+                    .build();
 
-        mockMvc.perform(post("/api/mydata/ria-accounts/save")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest());
+            mockMvc.perform(post("/api/mydata/ria-accounts/save")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest());
+        }
 
-        verify(mydataRiaAccountService, never()).saveRiaAccount(any());
+        verify(mydataRiaAccountService, never()).syncRiaAccount(any());
     }
+
 }

@@ -13,7 +13,7 @@ public interface MydataRiaAccountMapper {
 
     void insertAccount(MydataRiaAccountDTO accountDTO);
 
-    Optional<MydataRiaAccountDTO> selectByCiHashAndBrokerName(MydataRiaAccountDTO riaAccountDTO);
+    void upsertAccount(MydataRiaAccountDTO accountDTO);
 
-    void updateAccount(MydataRiaAccountDTO accountDTO);
+    Optional<MydataRiaAccountDTO> selectByCiHashAndBrokerName(MydataRiaAccountDTO riaAccountDTO);
 }

@@ -109,6 +109,28 @@ class MydataTradeApiTest {
     }
 
     @Test
+    void getTradesIncludesTickerForNonFundTrades() throws Exception {
+        MydataTradeResponseDTO response = MydataTradeResponseDTO.builder()
+                .tradeId(3L)
+                .ciHash("test-ci-hash")
+                .stockType(StockType.FOREIGN_STOCK)
+                .ticker("AAPL")
+                .build();
+        when(mydataTradeService.getTradesByCiHash(any())).thenReturn(List.of(response));
+
+        MydataTradeRequestDTO request = MydataTradeRequestDTO.builder()
+                .ciHash("test-ci-hash")
+                .build();
+
+        mockMvc.perform(post("/api/mydata/trades")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].stockType").value("FOREIGN_STOCK"))
+                .andExpect(jsonPath("$.data[0].ticker").value("AAPL"));
+    }
+
+    @Test
     void getTradesParsesFromDateWhenSentAsJsonArray() throws Exception {
         // maria의 RestClient는 Spring Boot가 커스터마이징하지 않은 기본 ObjectMapper를 쓰기 때문에
         // LocalDate를 ISO 문자열이 아니라 [year,month,day] 배열로 직렬화해서 보낸다.

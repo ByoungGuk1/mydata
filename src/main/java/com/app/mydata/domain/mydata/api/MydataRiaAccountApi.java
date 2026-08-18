@@ -7,7 +7,6 @@ import com.app.mydata.domain.mydata.service.MydataRiaAccountService;
 import com.app.mydata.global.response.ApiResponseDTO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,7 +28,8 @@ public class MydataRiaAccountApi {
     }
 
     @PostMapping("/save")
-    public ResponseEntity<ApiResponseDTO<MydataRiaAccountResponseDTO>> createAccount(@Valid @RequestBody RiaAccountRequestDTO riaAccountRequestDTO){
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponseDTO.of("myData RIA 계좌 등록 성공", mydataRiaAccountService.saveRiaAccount(riaAccountRequestDTO)));
+    public ResponseEntity<ApiResponseDTO<MydataRiaAccountResponseDTO>> syncAccount(@Valid @RequestBody RiaAccountRequestDTO riaAccountRequestDTO){
+        return ResponseEntity.ok(ApiResponseDTO.of("myData RIA 계좌 동기화 성공", mydataRiaAccountService.syncRiaAccount(riaAccountRequestDTO)));
     }
+
 }
